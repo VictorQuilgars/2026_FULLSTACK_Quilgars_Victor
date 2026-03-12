@@ -1,0 +1,41 @@
+# OS
+.DS_Store
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Env files
+.env
+.env.*
+!.env.example
+
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+coverage/
+
+# Next.js
+.next/
+out/
+
+# TypeScript
+*.tsbuildinfo
+
+# Python leftovers
+venv/
+__pycache__/
+*.pyc
+
+# Prisma generated artifacts (backend)
+server/generated/
+server/generated/prisma/
+
+# Local editor files
+.vscode/

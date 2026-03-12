@@ -1,0 +1,117 @@
+require("dotenv").config();
+const { PrismaClient } = require("@prisma/client");
+const { PrismaPg } = require("@prisma/adapter-pg");
+const { Pool } = require("pg");
+const bcrypt = require("bcryptjs");
+
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const adapter = new PrismaPg(pool);
+const prisma = new PrismaClient({ adapter });
+
+async function main() {
+  const passwordHash = await bcrypt.hash("password", 10);
+
+  // 1. Création de l'Équipe (ADMIN & SUPER_ADMIN)
+  const staff = [
+    {
+      nom: "Rodier",
+      prenom: "Barnabé",
+      email: "barnabe@roz-nettoyage.fr",
+      password: passwordHash,
+      tel: "0772103552",
+      dateNaissance: new Date("1995-05-15"),
+      sexe: "MASCULIN",
+      droit: "SUPER_ADMIN",
+      role: "Co-fondateur",
+    },
+    {
+      nom: "Mahé",
+      prenom: "Julian",
+      email: "julian@roz-nettoyage.fr",
+      password: passwordHash,
+      tel: "0602243720",
+      dateNaissance: new Date("1996-08-20"),
+      sexe: "MASCULIN",
+      droit: "SUPER_ADMIN",
+      role: "Co-fondateur",
+    },
+    {
+      nom: "Le Douarec",
+      prenom: "Hugo",
+      email: "hugo@roz-nettoyage.fr",
+      password: passwordHash,
+      tel: "0600000001",
+      dateNaissance: new Date("1998-03-10"),
+      sexe: "MASCULIN",
+      droit: "ADMIN",
+      role: "Expert Nettoyage",
+    },
+    {
+      nom: "Sévenou",
+      prenom: "Nathan",
+      email: "nathan@roz-nettoyage.fr",
+      password: passwordHash,
+      tel: "0600000002",
+      dateNaissance: new Date("1997-11-25"),
+      sexe: "MASCULIN",
+      droit: "ADMIN",
+      role: "Spécialiste Intérieur",
+    },
+  ];
+
+  console.log("⏳ Création des utilisateurs...");
+  for (const u of staff) {
+    await prisma.user.upsert({
+      where: { email: u.email },
+      update: {},
+      create: u,
+    });
+  }
+
+  // 2. Création des Services avec les prix JSON
+  const services = [
+    {
+      nom: "Intérieur voiture",
+      description: "Nettoyage complet pour un aspect sortie de concession.",
+      dureeMinutes: 120,
+      prices: {
+        "Citadine (Clio, 208...)": 99,
+        "Berline/ Break (A5, 508..)": 109,
+        "SUV (2008, Tiguan, Q5...)": 119,
+        "Monospace 7 places/ Van": 139,
+      },
+    },
+    {
+      nom: "Canapé classique",
+      description: "Nettoyage en profondeur de votre canapé.",
+      dureeMinutes: 60,
+      prices: { "Prix unique": 99 },
+    },
+    {
+      nom: "Fauteuil",
+      description: "Redonne de l'éclat à vos fauteuils.",
+      dureeMinutes: 60,
+      prices: { "Prix unique": 60 },
+    },
+  ];
+
+  console.log("⏳ Création des services...");
+  for (const s of services) {
+    await prisma.service.upsert({
+      where: { nom: s.nom },
+      update: {},
+      create: s,
+    });
+  }
+
+  console.log("✅ Base de données initialisée avec succès !");
+}
+
+main()
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });

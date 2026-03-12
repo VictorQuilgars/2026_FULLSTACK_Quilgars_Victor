@@ -1,0 +1,111 @@
+// server/prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// --- ENUMS (Pour sécuriser les données) ---
+
+enum AccessLevel {
+  USER          // Client standard
+  ADMIN         // Personnel / Nettoyeur
+  SUPER_ADMIN   // Barnabé & Julian (Accès total)
+}
+
+enum Gender {
+  MASCULIN
+  FEMININ
+  AUTRE
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  DONE
+  CANCELLED
+}
+
+// --- MODÈLES ---
+
+model User {
+  id              String        @id @default(uuid())
+  
+  // Identité
+  nom             String
+  prenom          String
+  email           String        @unique
+  password        String
+  tel             String
+  dateNaissance   DateTime
+  sexe            Gender
+
+  // Droits et Fonctions
+  droit           AccessLevel   @default(USER)
+  role            String?       // "Co-fondateur", "Expert Nettoyage", etc.
+  
+  // Relations
+  // Un utilisateur peut prendre plusieurs rendez-vous (en tant que client)
+  appointments    Appointment[] @relation("ClientAppointments")
+  
+  // Un utilisateur (si ADMIN) peut être assigné à plusieurs rendez-vous (en tant que staff)
+  assignedTasks   Appointment[] @relation("StaffAssignments")
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
+
+model Service {
+  id           Int           @id @default(autoincrement())
+  nom          String        @unique // ex: "Intérieur voiture"
+  description  String?
+  
+  // Prix stockés en JSON pour gérer les catégories de véhicules
+  // Exemple : { "Citadine": 99, "SUV": 119, "Berline": 109 }
+  prices       Json          
+  
+  dureeMinutes Int           @default(120)
+  appointments Appointment[]
+}
+
+model Appointment {
+  id        Int               @id @default(autoincrement())
+  date      DateTime          // Jour du rendez-vous
+  slot      String            // Heure de début (ex: "14:30")
+  status    AppointmentStatus @default(PENDING)
+  
+  // Relation Client
+  client    User              @relation("ClientAppointments", fields: [clientId], references: [id])
+  clientId  String
+
+  // Relation Staff (Qui effectue le nettoyage)
+  staff     User?             @relation("StaffAssignments", fields: [staffId], references: [id])
+  staffId   String?
+
+  // MODIFICATION ICI : On utilise "Service" au lieu de "UserService"
+  service   Service           @relation(fields: [serviceId], references: [id])
+  serviceId Int
+
+  // Gamme de prix choisie (ex: "Citadine (Clio, 208...)")
+  gamme     String?
+  // Prix correspondant à la gamme choisie (en euros)
+  prix      Int?
+
+  // Avis (optionnel, après la prestation)
+  review    Review?
+
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+}
+
+model Review {
+  id            Int         @id @default(autoincrement())
+  rating        Int         // 1 à 5
+  comment       String?
+  appointment   Appointment @relation(fields: [appointmentId], references: [id])
+  appointmentId Int         @unique
+  createdAt     DateTime    @default(now())
+}
