@@ -94,7 +94,8 @@ export function EspaceClientPage() {
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) {
-      console.error("Erreur de deconnexion:", error.message);
+      // Réseau inaccessible : on nettoie uniquement la session locale
+      await supabase.auth.signOut({ scope: "local" });
     }
   };
 
