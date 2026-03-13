@@ -6,7 +6,7 @@ export function ServicesOverview() {
       slug: "interieur-voiture",
       title: "Intérieur voiture",
       description:
-        "Redécouvrez le confort d’un habitacle propre : sièges, tapis, coffres et plastiques traités en profondeur.",
+        "Redécouvrez le confort d'un habitacle propre : sièges, tapis, coffres et plastiques traités en profondeur.",
     },
     {
       slug: "canape-fauteuil",
@@ -40,8 +40,8 @@ export function ServicesOverview() {
             </p>
           </div>
           <Link
-            href="/services"
-            className="mt-2 inline-flex items-center justify-center rounded-full border border-rose-primary/40 px-5 py-2 text-xs font-semibold text-rose-primary hover:bg-rose-gradient hover:text-white md:mt-0"
+            href="/particuliers"
+            className="mt-2 inline-flex items-center justify-center rounded-full border border-rose-primary/40 px-5 py-2 text-xs font-semibold text-rose-primary hover:bg-rose-gradient hover:text-white md:mt-0 transition"
           >
             Voir le détail des prestations
           </Link>
@@ -66,4 +66,3 @@ export function ServicesOverview() {
     </section>
   );
 }
-
