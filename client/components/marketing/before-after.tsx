@@ -1,22 +1,25 @@
-export function BeforeAfter() {
-  const transformations = [
-    {
-      title: "Intérieur voiture",
-      description:
-        "Sièges, tapis et plastiques traités en profondeur pour un résultat visible immédiatement.",
-    },
-    {
-      title: "Canapé textile",
-      description:
-        "Taches, odeurs et acariens éliminés. Votre salon retrouve une seconde jeunesse.",
-    },
-    {
-      title: "Tapis & moquette",
-      description:
-        "Couleurs ravivées et fibres assainies pour une durée de vie prolongée.",
-    },
-  ];
+const transformations = [
+  {
+    title: "Intérieur voiture",
+    description:
+      "Sièges, tapis et plastiques traités en profondeur pour un résultat visible immédiatement.",
+    accentBg: "from-rose-primary/20 to-rose-strong/30",
+  },
+  {
+    title: "Canapé textile",
+    description:
+      "Taches, odeurs et acariens éliminés. Votre salon retrouve une seconde jeunesse.",
+    accentBg: "from-slate-700/30 to-slate-900/40",
+  },
+  {
+    title: "Tapis & moquette",
+    description:
+      "Couleurs ravivées et fibres assainies pour une durée de vie prolongée.",
+    accentBg: "from-rose-primary/10 to-slate-400/20",
+  },
+];
 
+export function BeforeAfter() {
   return (
     <section className="bg-white">
       <div className="mx-auto max-w-6xl px-4 py-16 md:py-20">
@@ -33,34 +36,36 @@ export function BeforeAfter() {
           </p>
         </header>
 
-        <div className="mt-10 grid gap-6 md:grid-cols-3">
+        <div className="mt-10 grid gap-4 md:grid-cols-3">
           {transformations.map((item) => (
             <article
               key={item.title}
-              className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-slate-50"
+              className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
             >
-              {/* Placeholder for before/after images */}
-              <div className="relative h-48 bg-gradient-to-br from-rose-primary/10 via-rose-soft/40 to-slate-100">
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="flex items-center gap-3 text-sm text-slate-400">
-                    <span className="rounded-full bg-white/80 px-3 py-1 text-xs font-semibold">
-                      Avant
-                    </span>
-                    <svg
-                      width="20"
-                      height="20"
-                      viewBox="0 0 20 20"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      className="text-rose-primary"
-                    >
-                      <path d="M4 10h12M12 6l4 4-4 4" />
-                    </svg>
-                    <span className="rounded-full bg-rose-primary/10 px-3 py-1 text-xs font-semibold text-rose-primary">
-                      Après
-                    </span>
-                  </div>
+              {/* Placeholder avant/après */}
+              <div className={`relative h-44 bg-gradient-to-br ${item.accentBg}`}>
+                {/* Split line */}
+                <div className="absolute inset-y-0 left-1/2 w-px bg-white/60" />
+                <div className="absolute inset-0 flex items-center justify-between px-5">
+                  <span className="rounded-full bg-black/30 px-3 py-1 text-xs font-semibold text-white backdrop-blur-sm">
+                    Avant
+                  </span>
+                  <span className="rounded-full bg-rose-primary px-3 py-1 text-xs font-semibold text-white">
+                    Après
+                  </span>
+                </div>
+                <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
+                  <svg
+                    width="28"
+                    height="28"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="white"
+                    strokeWidth="2"
+                    className="drop-shadow"
+                  >
+                    <path d="M8 12h8M12 8l4 4-4 4" />
+                  </svg>
                 </div>
               </div>
               <div className="p-5">
