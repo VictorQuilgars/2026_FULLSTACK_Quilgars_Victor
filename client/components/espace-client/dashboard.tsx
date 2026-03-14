@@ -1,36 +1,25 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import type { User } from "@supabase/supabase-js";
-import { supabase } from "@/lib/supabase";
-import { getMyAppointments } from "@/lib/api/appointments";
+import { useState } from "react";
+import type { AuthUser } from "@/types/auth";
 import type { Appointment } from "@/types/appointment";
 import { ProfileSection } from "./profile-section";
 import { ReservationsSection } from "./reservations-section";
 
 type DashboardProps = {
-  user: User;
-  onLogout: () => void;
+  user: AuthUser;
+  appointments: Appointment[];
+  logoutUrl?: string;
 };
 
-export function Dashboard({ user, onLogout }: DashboardProps) {
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
+export function Dashboard({
+  user,
+  appointments,
+  logoutUrl = "/auth/logout",
+}: DashboardProps) {
   const [activeTab, setActiveTab] = useState<
     "reservations" | "profil" | "infos"
   >("reservations");
-
-  useEffect(() => {
-    const fetchAppointments = async () => {
-      const { data } = await supabase.auth.getSession();
-      const token = data.session?.access_token;
-      if (token) {
-        const result = await getMyAppointments(token);
-        setAppointments(result);
-      }
-    };
-
-    void fetchAppointments();
-  }, []);
 
   const tabs = [
     { key: "reservations" as const, label: "Réservations" },
@@ -44,15 +33,16 @@ export function Dashboard({ user, onLogout }: DashboardProps) {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Espace client</h1>
-          <p className="text-sm text-slate-500">{user.email}</p>
+          <p className="text-sm text-slate-500">
+            {user.prenom} {user.nom} · {user.email}
+          </p>
         </div>
-        <button
-          type="button"
-          onClick={onLogout}
+        <a
+          href={logoutUrl}
           className="rounded-full border border-slate-300 px-4 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-100"
         >
           Se déconnecter
-        </button>
+        </a>
       </div>
 
       {/* Tabs */}

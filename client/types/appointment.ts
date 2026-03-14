@@ -2,7 +2,7 @@ export type AppointmentStatus =
   | "PENDING"
   | "CONFIRMED"
   | "CANCELLED"
-  | "COMPLETED";
+  | "DONE";
 
 export type AppointmentService = {
   id: number;

@@ -8,14 +8,14 @@ type ReservationsSectionProps = {
 const STATUS_LABEL: Record<AppointmentStatus, string> = {
   PENDING: "En attente",
   CONFIRMED: "Confirmé",
-  COMPLETED: "Terminé",
+  DONE: "Terminé",
   CANCELLED: "Annulé",
 };
 
 const STATUS_STYLE: Record<AppointmentStatus, string> = {
   PENDING: "bg-yellow-100 text-yellow-800",
   CONFIRMED: "bg-green-100 text-green-800",
-  COMPLETED: "bg-slate-100 text-slate-600",
+  DONE: "bg-slate-100 text-slate-600",
   CANCELLED: "bg-red-100 text-red-700",
 };
 
