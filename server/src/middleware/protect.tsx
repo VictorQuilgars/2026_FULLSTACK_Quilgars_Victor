@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
-import { Gender } from "@prisma/client";
+import { Gender, Prisma } from "@prisma/client";
 import { verifyAuth0AccessToken } from "../lib/auth0";
 import { prisma } from "../lib/prisma";
 import { AppError } from "../utils/appError";
@@ -31,7 +31,14 @@ export const protect = async (
   let user = await prisma.user.findUnique({ where: { id: auth0Id } });
 
   if (!user && tokenEmail) {
-    user = await prisma.user.findUnique({ where: { email: tokenEmail } });
+    user = await prisma.user.findFirst({
+      where: {
+        email: {
+          equals: tokenEmail,
+          mode: "insensitive",
+        },
+      },
+    });
   }
 
   if (!user) {
@@ -52,18 +59,43 @@ export const protect = async (
     const email =
       tokenEmail || `${encodeURIComponent(auth0Id).replace(/%/g, "")}@auth0.local`;
 
-    user = await prisma.user.create({
-      data: {
-        id: auth0Id,
-        email,
-        nom: nomCandidate,
-        prenom: prenomCandidate,
-        password: "AUTH0_MANAGED_ACCOUNT",
-        tel: "",
-        dateNaissance: new Date("1970-01-01T00:00:00.000Z"),
-        sexe: Gender.AUTRE,
-      },
-    });
+    try {
+      user = await prisma.user.create({
+        data: {
+          id: auth0Id,
+          email,
+          nom: nomCandidate,
+          prenom: prenomCandidate,
+          password: "AUTH0_MANAGED_ACCOUNT",
+          tel: "",
+          dateNaissance: new Date("1970-01-01T00:00:00.000Z"),
+          sexe: Gender.AUTRE,
+        },
+      });
+    } catch (error) {
+      // Several requests can hit /auth/me at the same time right after Auth0 login.
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2002"
+      ) {
+        user =
+          (await prisma.user.findUnique({ where: { id: auth0Id } })) ??
+          (tokenEmail
+            ? await prisma.user.findFirst({
+                where: {
+                  email: {
+                    equals: tokenEmail,
+                    mode: "insensitive",
+                  },
+                },
+              })
+            : null);
+      }
+
+      if (!user) {
+        throw error;
+      }
+    }
   }
 
   req.authUser = user;
