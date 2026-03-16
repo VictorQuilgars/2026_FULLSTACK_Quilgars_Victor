@@ -48,10 +48,10 @@ export function ReservationsSection({
           et réservez en quelques clics.
         </p>
         <Link
-          href="/particuliers"
+          href="/espace-client/reserver"
           className="mt-4 inline-flex items-center justify-center rounded-full bg-rose-gradient px-6 py-2.5 text-sm font-semibold text-white shadow-rose-md transition hover:scale-[1.01]"
         >
-          Voir nos prestations
+          Réserver une prestation
         </Link>
       </div>
     );

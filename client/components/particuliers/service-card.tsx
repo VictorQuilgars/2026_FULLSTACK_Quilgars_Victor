@@ -42,7 +42,7 @@ export function ServiceCard({ service }: ServiceProps) {
         </div>
 
         <Link
-          href="/espace-client"
+          href={`/espace-client/reserver?serviceId=${service.id}`}
           className="mt-3 inline-flex w-full items-center justify-center rounded-full bg-rose-gradient px-4 py-2.5 text-sm font-semibold text-white shadow-rose-md transition hover:scale-[1.01]"
         >
           Réserver

@@ -197,6 +197,83 @@ export const getMyAppointments = async (req: Request, res: Response) => {
   res.status(200).json(appointments);
 };
 
+export const getAvailableSlots = async (req: Request, res: Response) => {
+  const { date, serviceId } = req.query;
+
+  if (!date || !serviceId) {
+    throw new AppError(
+      "Les paramètres date et serviceId sont obligatoires.",
+      400,
+    );
+  }
+
+  const appointmentDate = getAppointmentDate(date as string);
+
+  const service = await prisma.service.findUnique({
+    where: { id: Number(serviceId) },
+  });
+
+  if (!service) {
+    throw new AppError("Service introuvable.", 404);
+  }
+
+  const staffMembers = await prisma.user.findMany({
+    where: {
+      droit: { in: [AccessLevel.ADMIN, AccessLevel.SUPER_ADMIN] },
+    },
+    include: {
+      assignedTasks: {
+        where: {
+          date: appointmentDate,
+          status: { not: AppointmentStatus.CANCELLED },
+        },
+        include: {
+          service: { select: { dureeMinutes: true } },
+        },
+      },
+    },
+  });
+
+  const FIRST_SLOT_MINUTES = 8 * 60; // 08:00
+  const SLOT_STEP = 30; // toutes les 30 min
+  const availableSlots: string[] = [];
+
+  for (
+    let minutes = FIRST_SLOT_MINUTES;
+    minutes <= LAST_ALLOWED_SLOT_MINUTES;
+    minutes += SLOT_STEP
+  ) {
+    const hh = String(Math.floor(minutes / 60)).padStart(2, "0");
+    const mm = String(minutes % 60).padStart(2, "0");
+    const slot = `${hh}:${mm}`;
+
+    const requestedStart = buildDateTimeFromSlot(appointmentDate, slot);
+    const requestedEnd = addMinutes(requestedStart, service.dureeMinutes);
+
+    const hasAvailableStaff = staffMembers.some((staff) =>
+      staff.assignedTasks.every((task) => {
+        const existingStart = buildDateTimeFromSlot(task.date, task.slot);
+        const existingEnd = addMinutes(
+          existingStart,
+          task.service.dureeMinutes,
+        );
+        return !slotsOverlap(
+          requestedStart,
+          requestedEnd,
+          existingStart,
+          existingEnd,
+        );
+      }),
+    );
+
+    if (hasAvailableStaff) {
+      availableSlots.push(slot);
+    }
+  }
+
+  res.status(200).json({ date: date as string, serviceId: Number(serviceId), slots: availableSlots });
+};
+
 export const getActiveAppointments = async (_req: Request, res: Response) => {
   const appointments = await prisma.appointment.findMany({
     where: {

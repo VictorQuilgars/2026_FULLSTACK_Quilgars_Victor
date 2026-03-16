@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import type { AuthUser } from "@/types/auth";
 import type { Appointment } from "@/types/appointment";
 import { ProfileSection } from "./profile-section";
@@ -43,12 +44,20 @@ export function Dashboard({
             {identityLine || "Profil incomplet"} · {secondaryIdentity}
           </p>
         </div>
-        <a
-          href={logoutUrl}
-          className="rounded-full border border-slate-300 px-4 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-100"
-        >
-          Se déconnecter
-        </a>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/espace-client/reserver"
+            className="rounded-full bg-rose-gradient px-4 py-2 text-xs font-semibold text-white shadow-rose-md transition hover:scale-[1.01]"
+          >
+            Nouvelle réservation
+          </Link>
+          <a
+            href={logoutUrl}
+            className="rounded-full border border-slate-300 px-4 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-100"
+          >
+            Se déconnecter
+          </a>
+        </div>
       </div>
 
       {/* Tabs */}
