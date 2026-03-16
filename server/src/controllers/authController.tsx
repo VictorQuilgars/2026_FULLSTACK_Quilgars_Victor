@@ -4,6 +4,7 @@ import { prisma } from "../lib/prisma";
 import { AppError } from "../utils/appError";
 
 type UpdateProfileBody = {
+  email?: string;
   nom?: string;
   prenom?: string;
   tel?: string;
@@ -44,14 +45,28 @@ export const updateProfile = async (
     throw new AppError("Utilisateur non authentifié.", 401);
   }
 
-  const { nom, prenom, tel, dateNaissance, sexe } = req.body;
+  const { email, nom, prenom, tel, dateNaissance, sexe } = req.body;
   const data: {
+    email?: string | null;
     nom?: string;
     prenom?: string;
     tel?: string;
-    dateNaissance?: Date;
-    sexe?: Gender;
+    dateNaissance?: Date | null;
+    sexe?: Gender | null;
   } = {};
+
+  if (email !== undefined) {
+    const trimmedEmail = email.trim().toLowerCase();
+    if (!trimmedEmail) {
+      data.email = null;
+    } else {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(trimmedEmail)) {
+        throw new AppError("Format d'email invalide.", 400);
+      }
+      data.email = trimmedEmail;
+    }
+  }
 
   if (nom !== undefined) {
     const trimmedNom = nom.trim();
@@ -69,18 +84,26 @@ export const updateProfile = async (
   if (tel !== undefined) data.tel = tel.trim();
 
   if (dateNaissance !== undefined) {
-    const parsedDate = new Date(dateNaissance);
-    if (Number.isNaN(parsedDate.getTime())) {
-      throw new AppError("Format de date invalide.", 400);
+    if (!dateNaissance.trim()) {
+      data.dateNaissance = null;
+    } else {
+      const parsedDate = new Date(dateNaissance);
+      if (Number.isNaN(parsedDate.getTime())) {
+        throw new AppError("Format de date invalide.", 400);
+      }
+      data.dateNaissance = parsedDate;
     }
-    data.dateNaissance = parsedDate;
   }
 
   if (sexe !== undefined) {
-    if (!Object.values(Gender).includes(sexe as Gender)) {
-      throw new AppError("Valeur de sexe invalide.", 400);
+    if (!sexe.trim()) {
+      data.sexe = null;
+    } else {
+      if (!Object.values(Gender).includes(sexe as Gender)) {
+        throw new AppError("Valeur de sexe invalide.", 400);
+      }
+      data.sexe = sexe as Gender;
     }
-    data.sexe = sexe as Gender;
   }
 
   if (Object.keys(data).length === 0) {

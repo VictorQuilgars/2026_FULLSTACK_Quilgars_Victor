@@ -1,11 +1,8 @@
 import type { NextFunction, Request, Response } from "express";
-import { Gender, Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { getAuth0UserInfo, verifyAuth0AccessToken } from "../lib/auth0";
 import { prisma } from "../lib/prisma";
 import { AppError } from "../utils/appError";
-
-const DEFAULT_AUTH0_PRENOM = "Client";
-const DEFAULT_AUTH0_NOM = "Auth0";
 
 const buildIdentityCandidates = (profile: {
   email?: string;
@@ -21,15 +18,15 @@ const buildIdentityCandidates = (profile: {
       ? profile.given_name.trim()
       : typeof profile.name === "string" && profile.name.trim()
         ? profile.name.trim().split(" ")[0]
-        : DEFAULT_AUTH0_PRENOM;
+        : "";
 
   const nom =
     typeof profile.family_name === "string" && profile.family_name.trim()
       ? profile.family_name.trim()
       : typeof profile.name === "string" && profile.name.trim()
         ? profile.name.trim().split(" ").slice(1).join(" ").trim() ||
-          DEFAULT_AUTH0_NOM
-        : DEFAULT_AUTH0_NOM;
+          ""
+        : "";
 
   return { email, prenom, nom };
 };
@@ -88,20 +85,17 @@ export const protect = async (
   }
 
   if (!user) {
-    const email =
-      tokenEmail || `${encodeURIComponent(auth0Id).replace(/%/g, "")}@auth0.local`;
-
     try {
       user = await prisma.user.create({
         data: {
           id: auth0Id,
-          email,
+          email: tokenEmail || null,
           nom: nomCandidate,
           prenom: prenomCandidate,
           password: "AUTH0_MANAGED_ACCOUNT",
           tel: "",
-          dateNaissance: new Date("1970-01-01T00:00:00.000Z"),
-          sexe: Gender.AUTRE,
+          dateNaissance: null,
+          sexe: null,
         },
       });
     } catch (error) {
@@ -132,31 +126,39 @@ export const protect = async (
 
   if (user) {
     const updates: {
-      email?: string;
+      email?: string | null;
       prenom?: string;
       nom?: string;
     } = {};
 
-    if (
-      tokenEmail &&
-      user.email.endsWith("@auth0.local") &&
-      user.email !== tokenEmail
-    ) {
+    if (tokenEmail && user.email !== tokenEmail) {
       updates.email = tokenEmail;
     }
 
     if (
-      prenomCandidate !== DEFAULT_AUTH0_PRENOM &&
-      (!user.prenom.trim() || user.prenom === DEFAULT_AUTH0_PRENOM)
+      prenomCandidate &&
+      (!user.prenom.trim() || user.prenom === "Client")
     ) {
       updates.prenom = prenomCandidate;
     }
 
     if (
-      nomCandidate !== DEFAULT_AUTH0_NOM &&
-      (!user.nom.trim() || user.nom === DEFAULT_AUTH0_NOM)
+      nomCandidate &&
+      (!user.nom.trim() || user.nom === "Auth0")
     ) {
       updates.nom = nomCandidate;
+    }
+
+    if (!tokenEmail && user.email?.endsWith("@auth0.local")) {
+      updates.email = null;
+    }
+
+    if (!prenomCandidate && user.prenom === "Client") {
+      updates.prenom = "";
+    }
+
+    if (!nomCandidate && user.nom === "Auth0") {
+      updates.nom = "";
     }
 
     if (Object.keys(updates).length > 0) {

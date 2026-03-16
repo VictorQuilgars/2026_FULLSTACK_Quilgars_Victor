@@ -17,9 +17,15 @@ export function Dashboard({
   appointments,
   logoutUrl = "/auth/logout",
 }: DashboardProps) {
+  const [currentUser, setCurrentUser] = useState(user);
   const [activeTab, setActiveTab] = useState<
     "reservations" | "profil" | "infos"
   >("reservations");
+
+  const identityLine = [currentUser.prenom, currentUser.nom]
+    .filter((value) => value.trim())
+    .join(" ");
+  const secondaryIdentity = currentUser.email ?? "Email non renseigne";
 
   const tabs = [
     { key: "reservations" as const, label: "Réservations" },
@@ -34,7 +40,7 @@ export function Dashboard({
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Espace client</h1>
           <p className="text-sm text-slate-500">
-            {user.prenom} {user.nom} · {user.email}
+            {identityLine || "Profil incomplet"} · {secondaryIdentity}
           </p>
         </div>
         <a
@@ -68,7 +74,12 @@ export function Dashboard({
         {activeTab === "reservations" && (
           <ReservationsSection appointments={appointments} />
         )}
-        {activeTab === "profil" && <ProfileSection user={user} />}
+        {activeTab === "profil" && (
+          <ProfileSection
+            user={currentUser}
+            onUserUpdated={setCurrentUser}
+          />
+        )}
         {activeTab === "infos" && (
           <div className="rounded-2xl border border-slate-200 bg-white p-6">
             <h2 className="text-lg font-semibold text-slate-900">

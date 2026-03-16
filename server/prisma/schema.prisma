@@ -37,11 +37,11 @@ model User {
   // Identité
   nom             String
   prenom          String
-  email           String        @unique
+  email           String?       @unique
   password        String
-  tel             String
-  dateNaissance   DateTime
-  sexe            Gender
+  tel             String        @default("")
+  dateNaissance   DateTime?
+  sexe            Gender?
 
   // Droits et Fonctions
   droit           AccessLevel   @default(USER)
