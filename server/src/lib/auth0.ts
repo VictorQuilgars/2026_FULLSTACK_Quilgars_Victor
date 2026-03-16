@@ -15,6 +15,14 @@ export type Auth0AccessTokenClaims = JWTPayload & {
   name?: string;
 };
 
+export type Auth0UserInfo = {
+  sub: string;
+  email?: string;
+  given_name?: string;
+  family_name?: string;
+  name?: string;
+};
+
 let cachedConfig: Auth0Config | null = null;
 
 const getAuth0Config = (): Auth0Config => {
@@ -63,4 +71,36 @@ export const verifyAuth0AccessToken = async (
   } catch {
     throw new AppError("Token Auth0 invalide ou expiré.", 401);
   }
+};
+
+export const getAuth0UserInfo = async (
+  token: string,
+): Promise<Auth0UserInfo | null> => {
+  const { issuer } = getAuth0Config();
+
+  const response = await fetch(new URL("userinfo", issuer), {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    return null;
+  }
+
+  const data = (await response.json()) as Partial<Auth0UserInfo>;
+
+  if (typeof data.sub !== "string" || data.sub.trim() === "") {
+    return null;
+  }
+
+  return {
+    sub: data.sub,
+    email: typeof data.email === "string" ? data.email : undefined,
+    given_name:
+      typeof data.given_name === "string" ? data.given_name : undefined,
+    family_name:
+      typeof data.family_name === "string" ? data.family_name : undefined,
+    name: typeof data.name === "string" ? data.name : undefined,
+  };
 };

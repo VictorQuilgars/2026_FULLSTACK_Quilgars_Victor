@@ -1,8 +1,38 @@
 import type { NextFunction, Request, Response } from "express";
 import { Gender, Prisma } from "@prisma/client";
-import { verifyAuth0AccessToken } from "../lib/auth0";
+import { getAuth0UserInfo, verifyAuth0AccessToken } from "../lib/auth0";
 import { prisma } from "../lib/prisma";
 import { AppError } from "../utils/appError";
+
+const DEFAULT_AUTH0_PRENOM = "Client";
+const DEFAULT_AUTH0_NOM = "Auth0";
+
+const buildIdentityCandidates = (profile: {
+  email?: string;
+  given_name?: string;
+  family_name?: string;
+  name?: string;
+}) => {
+  const email =
+    typeof profile.email === "string" ? profile.email.trim().toLowerCase() : "";
+
+  const prenom =
+    typeof profile.given_name === "string" && profile.given_name.trim()
+      ? profile.given_name.trim()
+      : typeof profile.name === "string" && profile.name.trim()
+        ? profile.name.trim().split(" ")[0]
+        : DEFAULT_AUTH0_PRENOM;
+
+  const nom =
+    typeof profile.family_name === "string" && profile.family_name.trim()
+      ? profile.family_name.trim()
+      : typeof profile.name === "string" && profile.name.trim()
+        ? profile.name.trim().split(" ").slice(1).join(" ").trim() ||
+          DEFAULT_AUTH0_NOM
+        : DEFAULT_AUTH0_NOM;
+
+  return { email, prenom, nom };
+};
 
 export const protect = async (
   req: Request,
@@ -24,9 +54,25 @@ export const protect = async (
     return next(new AppError("Token invalide ou expiré.", 401));
   }
 
+  let userInfo = null;
+  try {
+    userInfo = await getAuth0UserInfo(token);
+  } catch {
+    userInfo = null;
+  }
+
   const auth0Id = payload.sub;
-  const tokenEmail =
-    typeof payload.email === "string" ? payload.email.trim().toLowerCase() : "";
+  const auth0Profile = {
+    email: userInfo?.email ?? payload.email,
+    given_name: userInfo?.given_name ?? payload.given_name,
+    family_name: userInfo?.family_name ?? payload.family_name,
+    name: userInfo?.name ?? payload.name,
+  };
+  const {
+    email: tokenEmail,
+    prenom: prenomCandidate,
+    nom: nomCandidate,
+  } = buildIdentityCandidates(auth0Profile);
 
   let user = await prisma.user.findUnique({ where: { id: auth0Id } });
 
@@ -42,20 +88,6 @@ export const protect = async (
   }
 
   if (!user) {
-    const prenomCandidate =
-      typeof payload.given_name === "string" && payload.given_name.trim()
-        ? payload.given_name.trim()
-        : typeof payload.name === "string" && payload.name.trim()
-          ? payload.name.trim().split(" ")[0]
-          : "Client";
-
-    const nomCandidate =
-      typeof payload.family_name === "string" && payload.family_name.trim()
-        ? payload.family_name.trim()
-        : typeof payload.name === "string" && payload.name.trim()
-          ? payload.name.trim().split(" ").slice(1).join(" ").trim() || "Auth0"
-          : "Auth0";
-
     const email =
       tokenEmail || `${encodeURIComponent(auth0Id).replace(/%/g, "")}@auth0.local`;
 
@@ -95,6 +127,43 @@ export const protect = async (
       if (!user) {
         throw error;
       }
+    }
+  }
+
+  if (user) {
+    const updates: {
+      email?: string;
+      prenom?: string;
+      nom?: string;
+    } = {};
+
+    if (
+      tokenEmail &&
+      user.email.endsWith("@auth0.local") &&
+      user.email !== tokenEmail
+    ) {
+      updates.email = tokenEmail;
+    }
+
+    if (
+      prenomCandidate !== DEFAULT_AUTH0_PRENOM &&
+      (!user.prenom.trim() || user.prenom === DEFAULT_AUTH0_PRENOM)
+    ) {
+      updates.prenom = prenomCandidate;
+    }
+
+    if (
+      nomCandidate !== DEFAULT_AUTH0_NOM &&
+      (!user.nom.trim() || user.nom === DEFAULT_AUTH0_NOM)
+    ) {
+      updates.nom = nomCandidate;
+    }
+
+    if (Object.keys(updates).length > 0) {
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: updates,
+      });
     }
   }
 
