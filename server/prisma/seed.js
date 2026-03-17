@@ -83,13 +83,25 @@ async function main() {
     },
     {
       nom: "Canapé classique",
-      description: "Nettoyage en profondeur de votre canapé.",
+      description: "Nettoyage en profondeur de votre canapé classique (2 ou 3 places) : taches, odeurs et acariens éliminés.",
       dureeMinutes: 60,
       prices: { "Prix unique": 99 },
     },
     {
+      nom: "Canapé d'angles",
+      description: "Nettoyage de votre canapé d'angle en profondeur. Même technique, surface plus grande couverte.",
+      dureeMinutes: 60,
+      prices: { "Prix unique": 109 },
+    },
+    {
+      nom: "Tapis",
+      description: "Injection-extraction sur tapis de toutes tailles. Couleurs ravivées, fibres assainies et odeurs neutralisées.",
+      dureeMinutes: 180,
+      prices: { "Prix unique": 99 },
+    },
+    {
       nom: "Fauteuil",
-      description: "Redonne de l'éclat à vos fauteuils.",
+      description: "Nettoyage en profondeur de votre fauteuil textile. Idéal pour les assises du quotidien.",
       dureeMinutes: 60,
       prices: { "Prix unique": 60 },
     },
