@@ -1,4 +1,7 @@
+"use client";
+
 import Image from "next/image";
+import { useCallback, useRef, useState } from "react";
 
 const transformations = [
   {
@@ -15,14 +18,91 @@ const transformations = [
     before: "/images/before-after/canape-before.jpg",
     after: "/images/before-after/canape-after.jpg",
   },
-  {
-    title: "Tapis & moquette",
-    description:
-      "Couleurs ravivées et fibres assainies pour une durée de vie prolongée.",
-    before: null,
-    after: null,
-  },
 ];
+
+function BeforeAfterSlider({
+  before,
+  after,
+  title,
+}: {
+  before: string;
+  after: string;
+  title: string;
+}) {
+  const [position, setPosition] = useState(50);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const dragging = useRef(false);
+
+  const updatePosition = useCallback((clientX: number) => {
+    if (!containerRef.current) return;
+    const { left, width } = containerRef.current.getBoundingClientRect();
+    const pct = Math.min(100, Math.max(0, ((clientX - left) / width) * 100));
+    setPosition(pct);
+  }, []);
+
+  const onMouseDown = () => {
+    dragging.current = true;
+    const onMove = (e: MouseEvent) => {
+      if (dragging.current) updatePosition(e.clientX);
+    };
+    const onUp = () => {
+      dragging.current = false;
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    updatePosition(e.touches[0].clientX);
+  };
+
+  return (
+    <div
+      ref={containerRef}
+      className="relative aspect-[4/5] select-none overflow-hidden bg-slate-100 cursor-col-resize"
+      onMouseDown={(e) => { updatePosition(e.clientX); onMouseDown(); }}
+      onTouchMove={onTouchMove}
+      onTouchStart={(e) => updatePosition(e.touches[0].clientX)}
+    >
+      {/* Image Après (fond) */}
+      <Image src={after} alt={`${title} après`} fill className="object-cover" />
+
+      {/* Image Avant (clip à gauche) */}
+      <div
+        className="absolute inset-0 overflow-hidden"
+        style={{ clipPath: `inset(0 ${100 - position}% 0 0)` }}
+      >
+        <Image src={before} alt={`${title} avant`} fill className="object-cover" />
+      </div>
+
+      {/* Ligne de séparation */}
+      <div
+        className="absolute inset-y-0 w-0.5 bg-white shadow-lg"
+        style={{ left: `${position}%` }}
+      />
+
+      {/* Poignée */}
+      <div
+        className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-lg ring-2 ring-rose-primary"
+        style={{ left: `${position}%` }}
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#E40E7C" strokeWidth="2.5">
+          <path d="M8 12h8M5 9l-3 3 3 3M19 9l3 3-3 3" />
+        </svg>
+      </div>
+
+      {/* Labels */}
+      <span className="absolute left-3 top-3 rounded-full bg-black/40 px-3 py-1 text-xs font-semibold text-white backdrop-blur-sm">
+        Avant
+      </span>
+      <span className="absolute right-3 top-3 rounded-full bg-rose-primary px-3 py-1 text-xs font-semibold text-white">
+        Après
+      </span>
+    </div>
+  );
+}
 
 export function BeforeAfter() {
   return (
@@ -41,61 +121,17 @@ export function BeforeAfter() {
           </p>
         </header>
 
-        <div className="mt-10 grid gap-4 md:grid-cols-3">
+        <div className="mt-10 mx-auto grid max-w-2xl gap-6 md:grid-cols-2">
           {transformations.map((item) => (
             <article
               key={item.title}
-              className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+              className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
             >
-              <div className="relative h-44 overflow-hidden bg-slate-100">
-                {item.before && item.after ? (
-                  <>
-                    {/* Moitié gauche : Avant */}
-                    <div className="absolute inset-y-0 left-0 w-1/2 overflow-hidden">
-                      <Image
-                        src={item.before}
-                        alt={`${item.title} avant`}
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                    {/* Moitié droite : Après */}
-                    <div className="absolute inset-y-0 right-0 w-1/2 overflow-hidden">
-                      <Image
-                        src={item.after}
-                        alt={`${item.title} après`}
-                        fill
-                        className="object-cover object-right"
-                      />
-                    </div>
-                  </>
-                ) : (
-                  <div className="absolute inset-0 bg-gradient-to-br from-rose-primary/10 to-slate-400/20" />
-                )}
-                {/* Split line */}
-                <div className="absolute inset-y-0 left-1/2 w-px bg-white/80" />
-                <div className="absolute inset-0 flex items-center justify-between px-5">
-                  <span className="rounded-full bg-black/40 px-3 py-1 text-xs font-semibold text-white backdrop-blur-sm">
-                    Avant
-                  </span>
-                  <span className="rounded-full bg-rose-primary px-3 py-1 text-xs font-semibold text-white">
-                    Après
-                  </span>
-                </div>
-                <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
-                  <svg
-                    width="28"
-                    height="28"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="white"
-                    strokeWidth="2"
-                    className="drop-shadow"
-                  >
-                    <path d="M8 12h8M12 8l4 4-4 4" />
-                  </svg>
-                </div>
-              </div>
+              <BeforeAfterSlider
+                before={item.before}
+                after={item.after}
+                title={item.title}
+              />
               <div className="p-5">
                 <h3 className="text-sm font-semibold text-slate-900 md:text-base">
                   {item.title}
