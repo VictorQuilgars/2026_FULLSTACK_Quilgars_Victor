@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
@@ -18,9 +19,13 @@ export function SiteHeader() {
     <header className="sticky top-0 z-40 border-b border-rose-primary/10 bg-white/92 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
         <Link href="/" className="flex items-center gap-3">
-          <div className="grid h-10 w-10 place-items-center rounded-xl bg-rose-gradient text-sm font-bold text-white shadow-rose-md">
-            RZ
-          </div>
+          <Image
+            src="/images/logo/round.png"
+            alt="Roz Nettoyage"
+            width={40}
+            height={40}
+            className="rounded-xl"
+          />
           <div className="leading-tight">
             <p className="text-sm font-semibold text-slate-900">
               Roz Nettoyage

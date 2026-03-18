@@ -1,4 +1,15 @@
+import Image from "next/image";
 import Link from "next/link";
+
+function getServiceImage(title: string): string | null {
+  const t = title.toLowerCase();
+  if (t.includes("angle")) return "/images/services/canape-angle.jpg";
+  if (t.includes("canapé") || t.includes("canape")) return "/images/services/canape-classique.png";
+  if (t.includes("fauteuil")) return "/images/services/fauteuil.jpg";
+  if (t.includes("voiture")) return "/images/services/int-voiture.png";
+  if (t.includes("tapis")) return "/images/services/tapis.png";
+  return null;
+}
 
 type ServiceProps = {
   service: {
@@ -14,11 +25,17 @@ type ServiceProps = {
 export function ServiceCard({ service }: ServiceProps) {
   return (
     <article className="flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md">
-      {/* Image placeholder */}
-      <div className="relative h-40 bg-gradient-to-br from-rose-primary/10 via-rose-soft/40 to-slate-100">
-        <div className="absolute inset-0 flex items-center justify-center text-sm text-slate-400">
-          Photo à venir
-        </div>
+      <div className="relative h-56 overflow-hidden bg-slate-100">
+        {(() => {
+          const img = service.image ?? getServiceImage(service.title);
+          return img ? (
+            <Image src={img} alt={service.title} fill className="object-cover" />
+          ) : (
+            <div className="absolute inset-0 bg-gradient-to-br from-rose-primary/10 via-rose-soft/40 to-slate-100 flex items-center justify-center text-sm text-slate-400">
+              Photo à venir
+            </div>
+          );
+        })()}
       </div>
 
       <div className="flex flex-1 flex-col p-5">

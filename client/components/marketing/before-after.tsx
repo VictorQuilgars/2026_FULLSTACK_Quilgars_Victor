@@ -1,21 +1,26 @@
+import Image from "next/image";
+
 const transformations = [
   {
     title: "Intérieur voiture",
     description:
       "Sièges, tapis et plastiques traités en profondeur pour un résultat visible immédiatement.",
-    accentBg: "from-rose-primary/20 to-rose-strong/30",
+    before: "/images/before-after/voiture-before.png",
+    after: "/images/before-after/voiture-after.png",
   },
   {
     title: "Canapé textile",
     description:
       "Taches, odeurs et acariens éliminés. Votre salon retrouve une seconde jeunesse.",
-    accentBg: "from-slate-700/30 to-slate-900/40",
+    before: "/images/before-after/canape-before.jpg",
+    after: "/images/before-after/canape-after.jpg",
   },
   {
     title: "Tapis & moquette",
     description:
       "Couleurs ravivées et fibres assainies pour une durée de vie prolongée.",
-    accentBg: "from-rose-primary/10 to-slate-400/20",
+    before: null,
+    after: null,
   },
 ];
 
@@ -42,12 +47,35 @@ export function BeforeAfter() {
               key={item.title}
               className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
             >
-              {/* Placeholder avant/après */}
-              <div className={`relative h-44 bg-gradient-to-br ${item.accentBg}`}>
+              <div className="relative h-44 overflow-hidden bg-slate-100">
+                {item.before && item.after ? (
+                  <>
+                    {/* Moitié gauche : Avant */}
+                    <div className="absolute inset-y-0 left-0 w-1/2 overflow-hidden">
+                      <Image
+                        src={item.before}
+                        alt={`${item.title} avant`}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                    {/* Moitié droite : Après */}
+                    <div className="absolute inset-y-0 right-0 w-1/2 overflow-hidden">
+                      <Image
+                        src={item.after}
+                        alt={`${item.title} après`}
+                        fill
+                        className="object-cover object-right"
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <div className="absolute inset-0 bg-gradient-to-br from-rose-primary/10 to-slate-400/20" />
+                )}
                 {/* Split line */}
-                <div className="absolute inset-y-0 left-1/2 w-px bg-white/60" />
+                <div className="absolute inset-y-0 left-1/2 w-px bg-white/80" />
                 <div className="absolute inset-0 flex items-center justify-between px-5">
-                  <span className="rounded-full bg-black/30 px-3 py-1 text-xs font-semibold text-white backdrop-blur-sm">
+                  <span className="rounded-full bg-black/40 px-3 py-1 text-xs font-semibold text-white backdrop-blur-sm">
                     Avant
                   </span>
                   <span className="rounded-full bg-rose-primary px-3 py-1 text-xs font-semibold text-white">

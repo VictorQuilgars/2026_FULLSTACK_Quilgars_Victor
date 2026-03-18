@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 export function Hero() {
@@ -59,9 +60,15 @@ export function Hero() {
         </div>
 
         <div className="flex-1">
-          <div className="relative h-72 w-full overflow-hidden rounded-3xl border border-rose-primary/20 bg-gradient-to-br from-rose-primary via-rose-strong to-ink shadow-2xl md:h-96">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_white/30,_transparent_60%)] opacity-60" />
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,_black/40,_transparent_55%)]" />
+          <div className="relative h-72 w-full overflow-hidden rounded-3xl border border-rose-primary/20 shadow-2xl md:h-96">
+            <Image
+              src="/images/hero/gros-plan.png"
+              alt="Nettoyage intérieur voiture avant après"
+              fill
+              className="object-cover"
+              priority
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
             <div className="absolute bottom-4 left-4 right-4 rounded-2xl bg-slate-950/70 p-4 text-xs text-slate-100 backdrop-blur">
               <p className="font-semibold text-white">Avant / Après</p>
               <p className="mt-1">
