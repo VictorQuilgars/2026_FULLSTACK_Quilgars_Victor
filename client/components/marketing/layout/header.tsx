@@ -3,7 +3,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
 
 const navLinks = [
   { href: "/", label: "Accueil" },
@@ -13,7 +12,6 @@ const navLinks = [
 
 export function SiteHeader() {
   const pathname = usePathname();
-  const [menuOpen, setMenuOpen] = useState(false);
 
   return (
     <header className="sticky top-0 z-40 border-b border-rose-primary/10 bg-white/92 backdrop-blur">
@@ -74,80 +72,23 @@ export function SiteHeader() {
           </a>
         </div>
 
-        {/* Mobile hamburger */}
-        <button
-          type="button"
-          className="grid h-9 w-9 place-items-center rounded-lg text-slate-700 hover:bg-slate-100 md:hidden"
-          onClick={() => setMenuOpen(!menuOpen)}
-          aria-label={menuOpen ? "Fermer le menu" : "Ouvrir le menu"}
+        {/* Mobile profile icon */}
+        <Link
+          href="/espace-client"
+          className={`grid h-9 w-9 place-items-center rounded-full transition md:hidden ${
+            pathname.startsWith("/espace-client")
+              ? "bg-rose-soft/70 text-rose-primary"
+              : "text-slate-600 hover:bg-slate-100"
+          }`}
+          aria-label="Mon espace client"
         >
-          {menuOpen ? (
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 20 20"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-            >
-              <line x1="4" y1="4" x2="16" y2="16" />
-              <line x1="16" y1="4" x2="4" y2="16" />
-            </svg>
-          ) : (
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 20 20"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-            >
-              <line x1="3" y1="5" x2="17" y2="5" />
-              <line x1="3" y1="10" x2="17" y2="10" />
-              <line x1="3" y1="15" x2="17" y2="15" />
-            </svg>
-          )}
-        </button>
-      </div>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="8" r="4" />
+            <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+          </svg>
+        </Link>
 
-      {/* Mobile menu */}
-      {menuOpen && (
-        <div className="border-t border-rose-primary/10 bg-white px-4 pb-4 md:hidden">
-          <nav className="flex flex-col gap-1 pt-2">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={() => setMenuOpen(false)}
-                className={`rounded-lg px-3 py-2.5 text-sm font-medium transition hover:bg-rose-soft/60 ${
-                  pathname === link.href
-                    ? "bg-rose-soft/60 text-rose-primary font-semibold"
-                    : "text-slate-700"
-                }`}
-              >
-                {link.label}
-              </Link>
-            ))}
-            <Link
-              href="/espace-client"
-              onClick={() => setMenuOpen(false)}
-              className="mt-1 rounded-full bg-rose-gradient px-4 py-2.5 text-center text-sm font-semibold text-white"
-            >
-              Espace client
-            </Link>
-          </nav>
-          <div className="mt-3 flex gap-3 text-xs text-slate-500">
-            <a href="tel:+33772103552" className="hover:text-rose-primary">
-              07 72 10 35 52
-            </a>
-            <a href="tel:+33602243720" className="hover:text-rose-primary">
-              06 02 24 37 20
-            </a>
-          </div>
-        </div>
-      )}
+      </div>
     </header>
   );
 }

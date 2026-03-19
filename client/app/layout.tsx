@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Mono, Outfit } from "next/font/google";
+import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import "./globals.css";
 
 const outfit = Outfit({
@@ -31,6 +32,7 @@ export default function RootLayout({
         className={`${outfit.variable} ${ibmPlexMono.variable} antialiased`}
       >
         {children}
+        <MobileBottomNav />
       </body>
     </html>
   );

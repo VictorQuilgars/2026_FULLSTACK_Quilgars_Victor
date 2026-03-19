@@ -64,6 +64,13 @@ body {
   min-height: 100vh;
 }
 
+/* Bottom nav safe area on mobile */
+@media (max-width: 767px) {
+  body {
+    padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+  }
+}
+
 @layer base {
   a {
     color: inherit;
