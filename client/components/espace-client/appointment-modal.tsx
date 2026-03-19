@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Appointment, AppointmentStatus } from "@/types/appointment";
+import type { Service } from "@/types/service";
 
 type AppointmentModalProps = {
   appointment: Appointment;
@@ -57,12 +58,309 @@ function StarRating({
   );
 }
 
+const toDateString = (d: Date) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};
+
+function EditForm({
+  appointment,
+  onSaved,
+  onCancel,
+}: {
+  appointment: Appointment;
+  onSaved: (updated: Appointment) => void;
+  onCancel: () => void;
+}) {
+  const [services, setServices] = useState<Service[]>([]);
+  const [loadingServices, setLoadingServices] = useState(true);
+
+  const [selectedServiceId, setSelectedServiceId] = useState(
+    appointment.service.id,
+  );
+  const [selectedGamme, setSelectedGamme] = useState<string | null>(
+    appointment.gamme ?? null,
+  );
+  const [selectedDate, setSelectedDate] = useState(
+    appointment.date.slice(0, 10),
+  );
+  const [selectedSlot, setSelectedSlot] = useState<string | null>(
+    appointment.slot,
+  );
+
+  const [availableSlots, setAvailableSlots] = useState<string[]>([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [slotsError, setSlotsError] = useState<string | null>(null);
+
+  const [submitLoading, setSubmitLoading] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const tomorrow = toDateString(
+    new Date(Date.now() + 24 * 60 * 60 * 1000),
+  );
+
+  // Fetch services on mount
+  useEffect(() => {
+    fetch("/api/services")
+      .then((r) => r.json())
+      .then((data: Service[]) => setServices(data))
+      .catch(() => {})
+      .finally(() => setLoadingServices(false));
+  }, []);
+
+  const selectedService = services.find((s) => s.id === selectedServiceId);
+  const priceKeys = selectedService ? Object.keys(selectedService.prices) : [];
+  const needsGamme = priceKeys.length > 1;
+
+  // Reset gamme when service changes
+  useEffect(() => {
+    if (selectedServiceId !== appointment.service.id) {
+      setSelectedGamme(null);
+    } else {
+      setSelectedGamme(appointment.gamme ?? null);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedServiceId]);
+
+  // Fetch available slots when date or service changes
+  useEffect(() => {
+    if (!selectedDate || !selectedServiceId) {
+      setAvailableSlots([]);
+      return;
+    }
+
+    setLoadingSlots(true);
+    setSlotsError(null);
+    setSelectedSlot(null);
+
+    fetch(
+      `/api/available-slots?date=${selectedDate}&serviceId=${selectedServiceId}&excludeId=${appointment.id}`,
+    )
+      .then(async (res) => {
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(
+            (body as { message?: string }).message ??
+              "Impossible de charger les créneaux.",
+          );
+        }
+        return res.json() as Promise<{ slots: string[] }>;
+      })
+      .then((data) => {
+        setAvailableSlots(data.slots);
+        // Pre-select current slot if it's still available
+        if (
+          selectedDate === appointment.date.slice(0, 10) &&
+          selectedServiceId === appointment.service.id &&
+          data.slots.includes(appointment.slot)
+        ) {
+          setSelectedSlot(appointment.slot);
+        }
+      })
+      .catch((err: Error) => {
+        setSlotsError(err.message);
+        setAvailableSlots([]);
+      })
+      .finally(() => setLoadingSlots(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDate, selectedServiceId]);
+
+  const canSubmit =
+    selectedServiceId &&
+    selectedDate &&
+    selectedSlot &&
+    (!needsGamme || selectedGamme) &&
+    !submitLoading;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!canSubmit) return;
+
+    setSubmitLoading(true);
+    setSubmitError(null);
+
+    try {
+      const res = await fetch(`/api/appointments/${appointment.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          date: selectedDate,
+          slot: selectedSlot,
+          serviceId: selectedServiceId,
+          ...(needsGamme && selectedGamme ? { gamme: selectedGamme } : {}),
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        setSubmitError(data.message ?? "Une erreur est survenue.");
+        return;
+      }
+
+      const updated: Appointment = await res.json();
+      onSaved(updated);
+    } catch {
+      setSubmitError("Une erreur est survenue.");
+    } finally {
+      setSubmitLoading(false);
+    }
+  };
+
+  if (loadingServices) {
+    return (
+      <div className="flex items-center gap-2 py-4 text-sm text-slate-500">
+        <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" className="opacity-25" />
+          <path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+        </svg>
+        Chargement…
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-5">
+      {/* Service */}
+      <div>
+        <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+          Prestation
+        </label>
+        <select
+          value={selectedServiceId}
+          onChange={(e) => setSelectedServiceId(Number(e.target.value))}
+          className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-rose-primary focus:ring-1 focus:ring-rose-primary"
+        >
+          {services.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.nom}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Gamme */}
+      {selectedService && needsGamme && (
+        <div>
+          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Type de prestation
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {priceKeys.map((g) => (
+              <button
+                key={g}
+                type="button"
+                onClick={() => setSelectedGamme(g)}
+                className={`rounded-full border px-4 py-1.5 text-sm font-medium transition ${
+                  selectedGamme === g
+                    ? "border-rose-primary bg-rose-soft/50 text-rose-primary ring-1 ring-rose-primary"
+                    : "border-slate-200 text-slate-700 hover:border-slate-300"
+                }`}
+              >
+                {g}
+                <span className="ml-1 text-xs text-slate-400">
+                  {selectedService.prices[g]} €
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Date */}
+      <div>
+        <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+          Date
+        </label>
+        <input
+          type="date"
+          value={selectedDate}
+          min={tomorrow}
+          onChange={(e) => setSelectedDate(e.target.value)}
+          className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-rose-primary focus:ring-1 focus:ring-rose-primary"
+        />
+      </div>
+
+      {/* Slots */}
+      {selectedDate && (!needsGamme || selectedGamme) && (
+        <div>
+          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Créneau
+          </label>
+
+          {loadingSlots && (
+            <div className="flex items-center gap-2 text-sm text-slate-500">
+              <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" className="opacity-25" />
+                <path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+              </svg>
+              Chargement des créneaux…
+            </div>
+          )}
+
+          {slotsError && (
+            <p className="text-xs text-red-600">{slotsError}</p>
+          )}
+
+          {!loadingSlots && !slotsError && availableSlots.length === 0 && (
+            <p className="text-sm text-slate-500">
+              Aucun créneau disponible pour cette date.
+            </p>
+          )}
+
+          {!loadingSlots && availableSlots.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {availableSlots.map((slot) => (
+                <button
+                  key={slot}
+                  type="button"
+                  onClick={() => setSelectedSlot(slot)}
+                  className={`rounded-lg border px-3 py-2 text-sm font-medium transition ${
+                    selectedSlot === slot
+                      ? "border-rose-primary bg-rose-soft/50 text-rose-primary ring-1 ring-rose-primary"
+                      : "border-slate-200 text-slate-700 hover:border-slate-300"
+                  }`}
+                >
+                  {slot}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {submitError && (
+        <p className="text-xs text-red-600">{submitError}</p>
+      )}
+
+      <div className="flex gap-2 pt-1">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="flex-1 rounded-full border border-slate-300 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+        >
+          Retour
+        </button>
+        <button
+          type="submit"
+          disabled={!canSubmit}
+          className="flex-1 rounded-full bg-rose-gradient py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-60"
+        >
+          {submitLoading ? "Enregistrement…" : "Confirmer"}
+        </button>
+      </div>
+    </form>
+  );
+}
+
 export function AppointmentModal({
   appointment,
   onClose,
   onUpdated,
 }: AppointmentModalProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
+  const [editMode, setEditMode] = useState(false);
   const [cancelConfirm, setCancelConfirm] = useState(false);
   const [cancelLoading, setCancelLoading] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
@@ -150,6 +448,7 @@ export function AppointmentModal({
 
   const canCancel =
     appointment.status === "PENDING" || appointment.status === "CONFIRMED";
+  const canEdit = canCancel;
   const canReview = appointment.status === "DONE" && !appointment.review;
   const hasReview = appointment.status === "DONE" && appointment.review;
 
@@ -175,7 +474,7 @@ export function AppointmentModal({
         <div className="flex items-start justify-between border-b border-slate-100 p-6 pb-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-rose-primary">
-              Rendez-vous #{appointment.id}
+              {editMode ? "Modifier le rendez-vous" : `Rendez-vous #${appointment.id}`}
             </p>
             <h2 className="mt-0.5 text-lg font-semibold text-slate-900">
               {appointment.service.nom}
@@ -197,158 +496,184 @@ export function AppointmentModal({
           </button>
         </div>
 
-        {/* Details */}
-        <div className="space-y-3 p-6">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-slate-500">Statut</span>
-            <span
-              className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_STYLE[appointment.status]}`}
-            >
-              {STATUS_LABEL[appointment.status]}
-            </span>
+        {editMode ? (
+          /* Edit form */
+          <div className="p-6">
+            <EditForm
+              appointment={appointment}
+              onSaved={(updated) => {
+                onUpdated(updated);
+                onClose();
+              }}
+              onCancel={() => setEditMode(false)}
+            />
           </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-slate-500">Date</span>
-            <span className="text-sm font-medium text-slate-900 capitalize">
-              {dateFormatted}
-            </span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-slate-500">Heure</span>
-            <span className="text-sm font-medium text-slate-900">
-              {appointment.slot}
-            </span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-slate-500">Durée</span>
-            <span className="text-sm font-medium text-slate-900">
-              {appointment.service.dureeMinutes} min
-            </span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-slate-500">Prix</span>
-            <span className="text-sm font-semibold text-rose-primary">
-              {appointment.prix}&euro;
-            </span>
-          </div>
-          {appointment.staff && (
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-slate-500">Technicien</span>
-              <span className="text-sm font-medium text-slate-900">
-                {appointment.staff.prenom} {appointment.staff.nom}
-                {appointment.staff.role && (
-                  <span className="ml-1 text-xs text-slate-400">
-                    · {appointment.staff.role}
+        ) : (
+          <>
+            {/* Details */}
+            <div className="space-y-3 p-6">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-slate-500">Statut</span>
+                <span
+                  className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_STYLE[appointment.status]}`}
+                >
+                  {STATUS_LABEL[appointment.status]}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-slate-500">Date</span>
+                <span className="text-sm font-medium text-slate-900 capitalize">
+                  {dateFormatted}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-slate-500">Heure</span>
+                <span className="text-sm font-medium text-slate-900">
+                  {appointment.slot}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-slate-500">Durée</span>
+                <span className="text-sm font-medium text-slate-900">
+                  {appointment.service.dureeMinutes} min
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-slate-500">Prix</span>
+                <span className="text-sm font-semibold text-rose-primary">
+                  {appointment.prix}&euro;
+                </span>
+              </div>
+              {appointment.staff && (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-slate-500">Technicien</span>
+                  <span className="text-sm font-medium text-slate-900">
+                    {appointment.staff.prenom} {appointment.staff.nom}
+                    {appointment.staff.role && (
+                      <span className="ml-1 text-xs text-slate-400">
+                        · {appointment.staff.role}
+                      </span>
+                    )}
                   </span>
-                )}
-              </span>
+                </div>
+              )}
             </div>
-          )}
-        </div>
 
-        {/* Actions */}
-        {(canCancel || canReview || hasReview) && (
-          <div className="border-t border-slate-100 p-6 pt-4">
-            {/* Cancel */}
-            {canCancel && (
-              <div>
-                {!cancelConfirm ? (
+            {/* Actions */}
+            {(canEdit || canCancel || canReview || hasReview) && (
+              <div className="border-t border-slate-100 p-6 pt-4 space-y-3">
+                {/* Edit button */}
+                {canEdit && !cancelConfirm && (
                   <button
-                    onClick={() => setCancelConfirm(true)}
-                    className="w-full rounded-full border border-red-300 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50"
+                    onClick={() => setEditMode(true)}
+                    className="w-full rounded-full border border-slate-300 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                   >
-                    Annuler ce rendez-vous
+                    Modifier ce rendez-vous
                   </button>
-                ) : (
-                  <div className="space-y-2">
-                    <p className="text-center text-sm text-slate-700">
-                      Confirmer l&apos;annulation ?
+                )}
+
+                {/* Cancel */}
+                {canCancel && (
+                  <div>
+                    {!cancelConfirm ? (
+                      <button
+                        onClick={() => setCancelConfirm(true)}
+                        className="w-full rounded-full border border-red-300 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50"
+                      >
+                        Annuler ce rendez-vous
+                      </button>
+                    ) : (
+                      <div className="space-y-2">
+                        <p className="text-center text-sm text-slate-700">
+                          Confirmer l&apos;annulation ?
+                        </p>
+                        {cancelError && (
+                          <p className="text-center text-xs text-red-600">
+                            {cancelError}
+                          </p>
+                        )}
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => setCancelConfirm(false)}
+                            className="flex-1 rounded-full border border-slate-300 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+                          >
+                            Retour
+                          </button>
+                          <button
+                            onClick={handleCancel}
+                            disabled={cancelLoading}
+                            className="flex-1 rounded-full bg-red-600 py-2 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60"
+                          >
+                            {cancelLoading ? "Annulation…" : "Confirmer"}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Review form */}
+                {canReview && !reviewSuccess && (
+                  <form onSubmit={handleReview} className="space-y-3">
+                    <p className="text-sm font-semibold text-slate-900">
+                      Laisser un avis
                     </p>
-                    {cancelError && (
-                      <p className="text-center text-xs text-red-600">
-                        {cancelError}
+                    <StarRating value={rating} onChange={setRating} />
+                    <textarea
+                      value={comment}
+                      onChange={(e) => setComment(e.target.value)}
+                      placeholder="Un commentaire ? (optionnel)"
+                      rows={3}
+                      className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 outline-none focus:border-rose-primary focus:ring-1 focus:ring-rose-primary"
+                    />
+                    {reviewError && (
+                      <p className="text-xs text-red-600">{reviewError}</p>
+                    )}
+                    <button
+                      type="submit"
+                      disabled={reviewLoading}
+                      className="w-full rounded-full bg-rose-gradient py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-60"
+                    >
+                      {reviewLoading ? "Envoi…" : "Envoyer mon avis"}
+                    </button>
+                  </form>
+                )}
+
+                {/* Review success */}
+                {canReview && reviewSuccess && (
+                  <div className="rounded-xl bg-green-50 p-4 text-center">
+                    <p className="text-sm font-semibold text-green-700">
+                      Merci pour votre avis !
+                    </p>
+                  </div>
+                )}
+
+                {/* Existing review */}
+                {hasReview && appointment.review && (
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold text-slate-900">
+                      Votre avis
+                    </p>
+                    <div className="flex gap-0.5">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <span
+                          key={star}
+                          className={`text-xl ${star <= appointment.review!.rating ? "text-yellow-400" : "text-slate-300"}`}
+                        >
+                          ★
+                        </span>
+                      ))}
+                    </div>
+                    {appointment.review.comment && (
+                      <p className="text-sm text-slate-600">
+                        {appointment.review.comment}
                       </p>
                     )}
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => setCancelConfirm(false)}
-                        className="flex-1 rounded-full border border-slate-300 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
-                      >
-                        Retour
-                      </button>
-                      <button
-                        onClick={handleCancel}
-                        disabled={cancelLoading}
-                        className="flex-1 rounded-full bg-red-600 py-2 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60"
-                      >
-                        {cancelLoading ? "Annulation…" : "Confirmer"}
-                      </button>
-                    </div>
                   </div>
                 )}
               </div>
             )}
-
-            {/* Review form */}
-            {canReview && !reviewSuccess && (
-              <form onSubmit={handleReview} className="space-y-3">
-                <p className="text-sm font-semibold text-slate-900">
-                  Laisser un avis
-                </p>
-                <StarRating value={rating} onChange={setRating} />
-                <textarea
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                  placeholder="Un commentaire ? (optionnel)"
-                  rows={3}
-                  className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 outline-none focus:border-rose-primary focus:ring-1 focus:ring-rose-primary"
-                />
-                {reviewError && (
-                  <p className="text-xs text-red-600">{reviewError}</p>
-                )}
-                <button
-                  type="submit"
-                  disabled={reviewLoading}
-                  className="w-full rounded-full bg-rose-gradient py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-60"
-                >
-                  {reviewLoading ? "Envoi…" : "Envoyer mon avis"}
-                </button>
-              </form>
-            )}
-
-            {/* Review success */}
-            {canReview && reviewSuccess && (
-              <div className="rounded-xl bg-green-50 p-4 text-center">
-                <p className="text-sm font-semibold text-green-700">
-                  Merci pour votre avis !
-                </p>
-              </div>
-            )}
-
-            {/* Existing review */}
-            {hasReview && appointment.review && (
-              <div className="space-y-1">
-                <p className="text-sm font-semibold text-slate-900">
-                  Votre avis
-                </p>
-                <div className="flex gap-0.5">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <span
-                      key={star}
-                      className={`text-xl ${star <= appointment.review!.rating ? "text-yellow-400" : "text-slate-300"}`}
-                    >
-                      ★
-                    </span>
-                  ))}
-                </div>
-                {appointment.review.comment && (
-                  <p className="text-sm text-slate-600">
-                    {appointment.review.comment}
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
+          </>
         )}
       </div>
     </div>

@@ -5,6 +5,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const date = searchParams.get("date");
   const serviceId = searchParams.get("serviceId");
+  const excludeId = searchParams.get("excludeId");
 
   if (!date || !serviceId) {
     return NextResponse.json(
@@ -13,10 +14,12 @@ export async function GET(request: Request) {
     );
   }
 
-  const response = await fetch(
-    `${API_URL}/available-slots?date=${encodeURIComponent(date)}&serviceId=${encodeURIComponent(serviceId)}`,
-    { cache: "no-store" },
-  );
+  const url = new URL(`${API_URL}/available-slots`);
+  url.searchParams.set("date", date);
+  url.searchParams.set("serviceId", serviceId);
+  if (excludeId) url.searchParams.set("excludeId", excludeId);
+
+  const response = await fetch(url.toString(), { cache: "no-store" });
 
   const body = await response.text();
 

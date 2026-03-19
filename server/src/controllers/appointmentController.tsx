@@ -198,7 +198,7 @@ export const getMyAppointments = async (req: Request, res: Response) => {
 };
 
 export const getAvailableSlots = async (req: Request, res: Response) => {
-  const { date, serviceId } = req.query;
+  const { date, serviceId, excludeId } = req.query;
 
   if (!date || !serviceId) {
     throw new AppError(
@@ -217,16 +217,26 @@ export const getAvailableSlots = async (req: Request, res: Response) => {
     throw new AppError("Service introuvable.", 404);
   }
 
+  const assignedTasksWhere: {
+    date: Date;
+    status: { not: AppointmentStatus };
+    NOT?: { id: number };
+  } = {
+    date: appointmentDate,
+    status: { not: AppointmentStatus.CANCELLED },
+  };
+
+  if (excludeId) {
+    assignedTasksWhere.NOT = { id: Number(excludeId) };
+  }
+
   const staffMembers = await prisma.user.findMany({
     where: {
       droit: { in: [AccessLevel.ADMIN, AccessLevel.SUPER_ADMIN] },
     },
     include: {
       assignedTasks: {
-        where: {
-          date: appointmentDate,
-          status: { not: AppointmentStatus.CANCELLED },
-        },
+        where: assignedTasksWhere,
         include: {
           service: { select: { dureeMinutes: true } },
         },
@@ -375,6 +385,156 @@ export const createReview = async (
   });
 
   res.status(201).json(review);
+};
+
+type UpdateAppointmentBody = {
+  date?: string;
+  slot?: string;
+  serviceId?: number;
+  gamme?: string;
+};
+
+export const updateAppointment = async (
+  req: Request<{ id: string }, unknown, UpdateAppointmentBody>,
+  res: Response,
+) => {
+  if (!req.authUser?.id) {
+    throw new AppError("Utilisateur non authentifie.", 401);
+  }
+
+  const { date, slot, serviceId, gamme } = req.body;
+
+  if (!date || !slot || !serviceId) {
+    throw new AppError(
+      "Les champs date, slot et serviceId sont obligatoires.",
+      400,
+    );
+  }
+
+  const appointmentId = Number(req.params.id);
+
+  const existing = await prisma.appointment.findUnique({
+    where: { id: appointmentId },
+  });
+
+  if (!existing) {
+    throw new AppError("Rendez-vous introuvable.", 404);
+  }
+
+  if (existing.clientId !== req.authUser.id) {
+    throw new AppError(
+      "Vous n'êtes pas autorisé à modifier ce rendez-vous.",
+      403,
+    );
+  }
+
+  if (
+    existing.status !== AppointmentStatus.PENDING &&
+    existing.status !== AppointmentStatus.CONFIRMED
+  ) {
+    throw new AppError(
+      "Seuls les rendez-vous en attente ou confirmés peuvent être modifiés.",
+      400,
+    );
+  }
+
+  const slotMinutes = parseSlotToMinutes(slot);
+
+  if (slotMinutes > LAST_ALLOWED_SLOT_MINUTES) {
+    throw new AppError("Le dernier creneau de debut autorise est 17:00.", 400);
+  }
+
+  const appointmentDate = getAppointmentDate(date);
+
+  const service = await prisma.service.findUnique({
+    where: { id: Number(serviceId) },
+  });
+
+  if (!service) {
+    throw new AppError("Service introuvable.", 404);
+  }
+
+  const prices = service.prices as Record<string, number>;
+  const priceKeys = Object.keys(prices);
+
+  let prix: number | undefined;
+
+  if (priceKeys.length > 1) {
+    if (!gamme) {
+      throw new AppError(
+        `Ce service necessite le choix d'une gamme. Gammes disponibles : ${priceKeys.join(", ")}.`,
+        400,
+      );
+    }
+
+    if (!(gamme in prices)) {
+      throw new AppError(
+        `Gamme "${gamme}" invalide. Gammes disponibles : ${priceKeys.join(", ")}.`,
+        400,
+      );
+    }
+
+    prix = prices[gamme];
+  } else {
+    prix = prices[priceKeys[0]];
+  }
+
+  const requestedStart = buildDateTimeFromSlot(appointmentDate, slot);
+  const requestedEnd = addMinutes(requestedStart, service.dureeMinutes);
+
+  const staffMembers = await prisma.user.findMany({
+    where: {
+      droit: { in: [AccessLevel.ADMIN, AccessLevel.SUPER_ADMIN] },
+    },
+    include: {
+      assignedTasks: {
+        where: {
+          date: appointmentDate,
+          status: { not: AppointmentStatus.CANCELLED },
+          NOT: { id: appointmentId },
+        },
+        include: {
+          service: { select: { dureeMinutes: true } },
+        },
+      },
+    },
+    orderBy: [{ droit: "desc" }, { createdAt: "asc" }],
+  });
+
+  const availableStaff = staffMembers.find((staffMember) =>
+    staffMember.assignedTasks.every((task) => {
+      const existingStart = buildDateTimeFromSlot(task.date, task.slot);
+      const existingEnd = addMinutes(existingStart, task.service.dureeMinutes);
+      return !slotsOverlap(requestedStart, requestedEnd, existingStart, existingEnd);
+    }),
+  );
+
+  if (!availableStaff) {
+    throw new AppError(
+      "Aucun membre du staff n'est disponible sur ce creneau pour la duree du service.",
+      409,
+    );
+  }
+
+  const updated = await prisma.appointment.update({
+    where: { id: appointmentId },
+    data: {
+      date: appointmentDate,
+      slot,
+      serviceId: Number(serviceId),
+      gamme: gamme ?? priceKeys[0],
+      prix,
+      staffId: availableStaff.id,
+      status: AppointmentStatus.PENDING,
+    },
+    include: {
+      service: true,
+      review: true,
+      staff: { select: { id: true, nom: true, prenom: true, role: true } },
+    },
+  });
+
+  res.status(200).json(updated);
 };
 
 export const getActiveAppointments = async (_req: Request, res: Response) => {
