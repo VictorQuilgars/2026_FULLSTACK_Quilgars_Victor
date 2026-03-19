@@ -1,5 +1,9 @@
+"use client";
+
 import Link from "next/link";
+import { useState } from "react";
 import type { Appointment, AppointmentStatus } from "@/types/appointment";
+import { AppointmentModal } from "./appointment-modal";
 
 type ReservationsSectionProps = {
   appointments: Appointment[];
@@ -22,8 +26,18 @@ const STATUS_STYLE: Record<AppointmentStatus, string> = {
 const UPCOMING_STATUSES: AppointmentStatus[] = ["PENDING", "CONFIRMED"];
 
 export function ReservationsSection({
-  appointments,
+  appointments: initialAppointments,
 }: ReservationsSectionProps) {
+  const [appointments, setAppointments] =
+    useState<Appointment[]>(initialAppointments);
+  const [selected, setSelected] = useState<Appointment | null>(null);
+
+  const handleUpdated = (updated: Appointment) => {
+    setAppointments((prev) =>
+      prev.map((a) => (a.id === updated.id ? updated : a)),
+    );
+  };
+
   if (appointments.length === 0) {
     return (
       <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center">
@@ -65,38 +79,68 @@ export function ReservationsSection({
   );
 
   return (
-    <div className="space-y-6">
-      {upcoming.length > 0 && (
-        <div>
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-            À venir
-          </h3>
-          <div className="mt-3 space-y-3">
-            {upcoming.map((a) => (
-              <AppointmentCard key={a.id} appointment={a} />
-            ))}
+    <>
+      <div className="space-y-6">
+        {upcoming.length > 0 && (
+          <div>
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+              À venir
+            </h3>
+            <div className="mt-3 space-y-3">
+              {upcoming.map((a) => (
+                <AppointmentCard
+                  key={a.id}
+                  appointment={a}
+                  onClick={() => setSelected(a)}
+                />
+              ))}
+            </div>
           </div>
-        </div>
-      )}
-      {past.length > 0 && (
-        <div>
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-            Passées
-          </h3>
-          <div className="mt-3 space-y-3">
-            {past.map((a) => (
-              <AppointmentCard key={a.id} appointment={a} />
-            ))}
+        )}
+        {past.length > 0 && (
+          <div>
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+              Passées
+            </h3>
+            <div className="mt-3 space-y-3">
+              {past.map((a) => (
+                <AppointmentCard
+                  key={a.id}
+                  appointment={a}
+                  onClick={() => setSelected(a)}
+                />
+              ))}
+            </div>
           </div>
-        </div>
+        )}
+      </div>
+
+      {selected && (
+        <AppointmentModal
+          appointment={selected}
+          onClose={() => setSelected(null)}
+          onUpdated={(updated) => {
+            handleUpdated(updated);
+            setSelected(updated);
+          }}
+        />
       )}
-    </div>
+    </>
   );
 }
 
-function AppointmentCard({ appointment }: { appointment: Appointment }) {
+function AppointmentCard({
+  appointment,
+  onClick,
+}: {
+  appointment: Appointment;
+  onClick: () => void;
+}) {
   return (
-    <article className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4">
+    <button
+      onClick={onClick}
+      className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white p-4 text-left transition hover:border-rose-primary/30 hover:shadow-surface-sm"
+    >
       <div>
         <p className="text-sm font-semibold text-slate-900">
           {appointment.service.nom}
@@ -125,7 +169,18 @@ function AppointmentCard({ appointment }: { appointment: Appointment }) {
         >
           {STATUS_LABEL[appointment.status]}
         </span>
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          className="shrink-0 text-slate-400"
+        >
+          <path d="m9 18 6-6-6-6" />
+        </svg>
       </div>
-    </article>
+    </button>
   );
 }

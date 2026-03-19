@@ -274,6 +274,109 @@ export const getAvailableSlots = async (req: Request, res: Response) => {
   res.status(200).json({ date: date as string, serviceId: Number(serviceId), slots: availableSlots });
 };
 
+export const cancelAppointment = async (
+  req: Request<{ id: string }>,
+  res: Response,
+) => {
+  if (!req.authUser?.id) {
+    throw new AppError("Utilisateur non authentifie.", 401);
+  }
+
+  const appointment = await prisma.appointment.findUnique({
+    where: { id: Number(req.params.id) },
+  });
+
+  if (!appointment) {
+    throw new AppError("Rendez-vous introuvable.", 404);
+  }
+
+  if (appointment.clientId !== req.authUser.id) {
+    throw new AppError(
+      "Vous n'êtes pas autorisé à modifier ce rendez-vous.",
+      403,
+    );
+  }
+
+  if (
+    appointment.status === AppointmentStatus.DONE ||
+    appointment.status === AppointmentStatus.CANCELLED
+  ) {
+    throw new AppError("Ce rendez-vous ne peut pas être annulé.", 400);
+  }
+
+  const updated = await prisma.appointment.update({
+    where: { id: Number(req.params.id) },
+    data: { status: AppointmentStatus.CANCELLED },
+    include: {
+      service: true,
+      review: true,
+      staff: { select: { id: true, nom: true, prenom: true, role: true } },
+    },
+  });
+
+  res.status(200).json(updated);
+};
+
+type CreateReviewBody = {
+  rating?: number;
+  comment?: string;
+};
+
+export const createReview = async (
+  req: Request<{ id: string }, unknown, CreateReviewBody>,
+  res: Response,
+) => {
+  if (!req.authUser?.id) {
+    throw new AppError("Utilisateur non authentifie.", 401);
+  }
+
+  const { rating, comment } = req.body;
+
+  if (!rating || Number(rating) < 1 || Number(rating) > 5) {
+    throw new AppError("La note doit être entre 1 et 5.", 400);
+  }
+
+  const appointment = await prisma.appointment.findUnique({
+    where: { id: Number(req.params.id) },
+    include: { review: true },
+  });
+
+  if (!appointment) {
+    throw new AppError("Rendez-vous introuvable.", 404);
+  }
+
+  if (appointment.clientId !== req.authUser.id) {
+    throw new AppError(
+      "Vous n'êtes pas autorisé à modifier ce rendez-vous.",
+      403,
+    );
+  }
+
+  if (appointment.status !== AppointmentStatus.DONE) {
+    throw new AppError(
+      "Vous pouvez uniquement laisser un avis sur un rendez-vous terminé.",
+      400,
+    );
+  }
+
+  if (appointment.review) {
+    throw new AppError(
+      "Vous avez déjà laissé un avis pour ce rendez-vous.",
+      400,
+    );
+  }
+
+  const review = await prisma.review.create({
+    data: {
+      rating: Number(rating),
+      comment: comment ?? null,
+      appointmentId: Number(req.params.id),
+    },
+  });
+
+  res.status(201).json(review);
+};
+
 export const getActiveAppointments = async (_req: Request, res: Response) => {
   const appointments = await prisma.appointment.findMany({
     where: {

@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { Gender } from "@prisma/client";
+import { Gender, Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma";
 import { AppError } from "../utils/appError";
 
@@ -111,8 +111,8 @@ export const updateProfile = async (
   }
 
   const user = await prisma.user.update({
-    where: { id: req.authUser.id },
-    data,
+    where: { id: req.authUser!.id },
+    data: data as Prisma.UserUpdateInput,
     select: {
       id: true,
       email: true,
