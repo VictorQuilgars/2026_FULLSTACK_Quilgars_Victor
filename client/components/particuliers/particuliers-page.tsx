@@ -92,7 +92,7 @@ export function ParticuliersPage() {
           <div className="mt-2 flex flex-wrap justify-center gap-3">
             <a
               href="tel:+33772103552"
-              className="inline-flex items-center justify-center rounded-full bg-white px-6 py-2.5 text-sm font-semibold text-rose-primary shadow-md hover:bg-rose-soft transition"
+              className="inline-flex items-center justify-center rounded-full bg-white px-6 py-2.5 text-sm font-semibold text-ink shadow-md hover:bg-slate-100 transition"
             >
               07 72 10 35 52
             </a>

@@ -43,7 +43,7 @@ export function ServicesOverview() {
           </div>
           <Link
             href="/particuliers"
-            className="inline-flex items-center justify-center rounded-full border border-white/20 px-5 py-2 text-xs font-semibold text-white transition hover:bg-white hover:text-slate-900 md:mt-0"
+            className="inline-flex items-center justify-center rounded-full border border-white/60 px-5 py-2 text-xs font-semibold text-white transition hover:bg-white hover:text-slate-900 md:mt-0"
           >
             Voir toutes les prestations
           </Link>
@@ -61,7 +61,7 @@ export function ServicesOverview() {
             >
               <span
                 className={`text-3xl font-black tracking-tighter ${
-                  i === 0 ? "text-white/30" : "text-rose-primary/50"
+                  i === 0 ? "text-white/30" : "text-rose-primary/80"
                 }`}
               >
                 {service.number}
@@ -71,7 +71,7 @@ export function ServicesOverview() {
               </h3>
               <p
                 className={`mt-2 flex-1 text-sm leading-relaxed ${
-                  i === 0 ? "text-white/80" : "text-slate-400"
+                  i === 0 ? "text-white/80" : "text-slate-300"
                 }`}
               >
                 {service.description}

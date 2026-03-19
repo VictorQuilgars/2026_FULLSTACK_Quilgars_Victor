@@ -37,7 +37,7 @@ export function Hero() {
             </Link>
             <Link
               href="/professionnels"
-              className="inline-flex items-center justify-center rounded-full border border-rose-primary/30 px-6 py-3 text-sm font-semibold text-rose-primary transition hover:bg-rose-soft/60"
+              className="inline-flex items-center justify-center rounded-full border border-rose-primary px-6 py-3 text-sm font-semibold text-rose-primary transition hover:bg-rose-primary hover:text-white"
             >
               Offre professionnels
             </Link>

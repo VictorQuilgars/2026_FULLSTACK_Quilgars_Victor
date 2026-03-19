@@ -51,7 +51,7 @@ export function SiteHeader() {
           ))}
           <Link
             href="/espace-client"
-            className="rounded-full border border-rose-primary/30 px-4 py-1.5 text-xs font-semibold text-rose-primary hover:bg-rose-gradient hover:text-white transition"
+            className="rounded-full border border-rose-primary px-4 py-1.5 text-xs font-semibold text-rose-primary hover:bg-rose-primary hover:text-white transition"
           >
             Espace client
           </Link>

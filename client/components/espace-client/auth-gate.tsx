@@ -32,7 +32,7 @@ export function AuthGate({ authError = null }: AuthGateProps) {
         </a>
         <a
           href="/auth/login?screen_hint=signup&returnTo=/espace-client"
-          className="inline-flex w-full items-center justify-center rounded-full border border-rose-primary/40 px-6 py-2.5 text-sm font-semibold text-rose-primary transition hover:bg-rose-soft/50"
+          className="inline-flex w-full items-center justify-center rounded-full border border-rose-primary px-6 py-2.5 text-sm font-semibold text-rose-primary transition hover:bg-rose-primary hover:text-white"
         >
           Inscription
         </a>

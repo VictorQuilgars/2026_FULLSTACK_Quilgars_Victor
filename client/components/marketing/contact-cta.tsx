@@ -16,7 +16,7 @@ export function ContactCta() {
         <div className="flex flex-wrap gap-3">
           <Link
             href="/professionnels#devis"
-            className="inline-flex items-center justify-center rounded-full bg-white px-6 py-2.5 text-sm font-semibold text-rose-primary shadow-md hover:bg-rose-soft transition"
+            className="inline-flex items-center justify-center rounded-full bg-white px-6 py-2.5 text-sm font-semibold text-ink shadow-md hover:bg-slate-100 transition"
           >
             Demander un devis gratuit
           </Link>
