@@ -19,9 +19,9 @@ export function Dashboard({
   logoutUrl = "/auth/logout",
 }: DashboardProps) {
   const [currentUser, setCurrentUser] = useState(user);
-  const [activeTab, setActiveTab] = useState<
-    "reservations" | "profil" | "infos"
-  >("reservations");
+  const [activeTab, setActiveTab] = useState<"reservations" | "profil">(
+    "reservations",
+  );
 
   const identityLine = [currentUser.prenom, currentUser.nom]
     .filter((value) => value.trim())
@@ -31,7 +31,6 @@ export function Dashboard({
   const tabs = [
     { key: "reservations" as const, label: "Réservations" },
     { key: "profil" as const, label: "Profil" },
-    { key: "infos" as const, label: "Informations" },
   ];
 
   return (
@@ -88,41 +87,6 @@ export function Dashboard({
             user={currentUser}
             onUserUpdated={setCurrentUser}
           />
-        )}
-        {activeTab === "infos" && (
-          <div className="rounded-2xl border border-slate-200 bg-white p-6">
-            <h2 className="text-lg font-semibold text-slate-900">
-              Informations
-            </h2>
-            <div className="mt-4 space-y-3 text-sm text-slate-600">
-              <div className="flex justify-between border-b border-slate-100 pb-3">
-                <span className="font-medium text-slate-700">Entreprise</span>
-                <span>Roz Nettoyage</span>
-              </div>
-              <div className="flex justify-between border-b border-slate-100 pb-3">
-                <span className="font-medium text-slate-700">Zone</span>
-                <span>Brest et alentours</span>
-              </div>
-              <div className="flex justify-between border-b border-slate-100 pb-3">
-                <span className="font-medium text-slate-700">Téléphone</span>
-                <a
-                  href="tel:+33772103552"
-                  className="text-rose-primary hover:underline"
-                >
-                  07 72 10 35 52
-                </a>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-medium text-slate-700">Email</span>
-                <a
-                  href="mailto:roz.nettoyage@gmail.com"
-                  className="text-rose-primary hover:underline"
-                >
-                  roz.nettoyage@gmail.com
-                </a>
-              </div>
-            </div>
-          </div>
         )}
       </div>
     </div>
