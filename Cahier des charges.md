@@ -13,15 +13,20 @@ Le site doit servir de vitrine pour l'entreprise avec :
 - Une **page d'accueil** présentant l'entreprise, ses services, des témoignages clients, une section avant/après, et un appel à l'action pour prendre contact.
 - Une **page Particuliers** listant les services proposés aux particuliers avec leurs tarifs, durées et un bouton "Réserver" pour chaque service.
 - Une **page Professionnels** listant les services B2B, une section abonnement "À la Roz-cousse", et un formulaire de demande de devis.
-- Un **header** avec navigation (Accueil, Particuliers, Professionnels), mise en avant des numéros de téléphone, menu hamburger mobile.
+- Un **header** sticky avec navigation desktop (Accueil, Particuliers, Professionnels, Espace client), mise en avant des numéros de téléphone. Sur mobile : logo + icône profil (accès rapide à l'espace client).
+- Une **barre de navigation mobile** fixée en bas de l'écran (style app native : Accueil, Particuliers, Pro, bouton central Réserver surélevé).
 - Un **footer** avec liens de navigation, icônes réseaux sociaux (Facebook, Instagram), email de contact.
 
 ### Espace client
 
 Les utilisateurs peuvent créer un compte et accéder à un espace client protégé qui contient :
 
-- Un **dashboard** avec des onglets : Réservations, Profil, Informations.
+- Un **dashboard** avec des onglets : Réservations, Profil.
 - La possibilité de **consulter ses réservations** passées et à venir avec le statut de chaque rendez-vous.
+- Un **modal de détail** pour chaque rendez-vous (service, date, créneau, durée, prix, technicien assigné, statut).
+- La possibilité d'**annuler un rendez-vous** (PENDING ou CONFIRMED) avec confirmation en deux étapes.
+- La possibilité de **modifier un rendez-vous** (PENDING ou CONFIRMED) : changement du service, de la date, du créneau et de la gamme, avec réassignation automatique du staff.
+- La possibilité de **laisser un avis** (note 1–5 étoiles + commentaire optionnel) sur un rendez-vous terminé (DONE).
 - La possibilité de **modifier son profil** (nom, prénom, email, téléphone, date de naissance, sexe).
 
 ### Système de réservation
@@ -172,26 +177,30 @@ Le design est moderne, épuré et responsive (mobile-first).
 - **Palette** : Couleurs inspirées de l'identité Roz Nettoyage (tons professionnels, contrastes soignés).
 - **Typographie** : Polices IBM Plex Mono (titres/accents) et Outfit (corps de texte).
 - **Layout** : Utilisation de Flexbox et Grid pour une mise en page fluide.
-- **Navigation** : Header fixe avec liens principaux, menu hamburger sur mobile.
+- **Navigation** : Header sticky avec liens principaux sur desktop. Sur mobile : icône profil dans le header + barre de navigation fixe en bas (style app native) avec un bouton central surélevé pour la réservation rapide.
 - **Cards** : Utilisées pour afficher les services et les rendez-vous.
 - **Responsive** : Adaptation complète mobile/tablette/desktop.
 - **Sections marketing** : Hero, services, avant/après, témoignages, à propos, contact.
 
 # Versions
 
-## V1
+## V1 ✅
 
 * Site vitrine complet (accueil, particuliers, professionnels) avec header/footer.
+* Navigation mobile : barre fixe en bas de l'écran (style app native) avec bouton central "Réserver" surélevé et icône profil dans le header.
 * Système d'authentification via Auth0 (Google OAuth + email/password).
 * Provisionnement automatique des utilisateurs en base à la première connexion.
-* Espace client protégé avec dashboard (onglets Réservations, Profil, Informations).
+* Espace client protégé avec dashboard (onglets Réservations, Profil).
 * Modification du profil utilisateur (nom, prénom, email, téléphone, date de naissance, sexe).
 * Liste publique des services avec tarifs et durées.
-* Système de réservation avec choix du service, date, créneau, gamme de prix.
+* Système de réservation avec choix du service, date (calendrier), créneau horaire et gamme de prix.
 * Attribution automatique du staff disponible avec vérification des conflits de créneaux.
-* Consultation des rendez-vous passés et à venir avec statut.
+* Consultation des rendez-vous passés et à venir avec statut, dans un modal de détail.
+* Annulation de rendez-vous (PENDING/CONFIRMED) avec confirmation en deux étapes.
+* Modification de rendez-vous (PENDING/CONFIRMED) : service, date, créneau, gamme — avec réassignation du staff.
+* Avis clients sur les rendez-vous terminés (note 1–5 étoiles + commentaire optionnel).
 * Docker Compose pour orchestrer PostgreSQL, Express et Next.js.
-* API REST documentée avec endpoints : auth, services, appointments.
+* API REST avec endpoints : auth, services, appointments (CRUD, cancel, review), créneaux disponibles.
 * Health check endpoint pour le monitoring.
 
 ## V2 (à venir)
@@ -199,9 +208,7 @@ Le design est moderne, épuré et responsive (mobile-first).
 * Système de notifications (email/SMS) pour rappeler les rendez-vous aux clients.
 * Tableau de bord administrateur pour gérer les rendez-vous, les services et le staff.
 * Gestion des disponibilités du staff (jours de congé, horaires personnalisés).
-* Système d'avis clients après un rendez-vous terminé (lié au modèle Review existant).
 * Paiement en ligne (Stripe) pour confirmer les réservations.
-* Annulation/modification de rendez-vous par le client.
 * Page de gestion des services pour l'admin (CRUD services).
 
 ## V3 (futur)

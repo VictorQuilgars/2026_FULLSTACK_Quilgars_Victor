@@ -159,6 +159,11 @@ function AppointmentCard({
           })}{" "}
           à {appointment.slot}
         </p>
+        {appointment.status === "DONE" && !appointment.review && (
+          <p className="mt-1 flex items-center gap-1 text-xs font-medium text-amber-600">
+            <span>★</span> Laisser un avis
+          </p>
+        )}
       </div>
       <div className="flex items-center gap-3">
         <span className="text-sm font-semibold text-rose-primary">
