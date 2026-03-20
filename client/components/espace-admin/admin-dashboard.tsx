@@ -5,6 +5,7 @@ import type { AuthUser } from "@/types/auth";
 import type { AdminAppointment } from "@/types/admin";
 import type { AppointmentStatus } from "@/types/appointment";
 import { ProfileSection } from "@/components/espace-client/profile-section";
+import { AdminCalendar } from "@/components/espace-admin/admin-calendar";
 
 type AdminDashboardProps = {
   user: AuthUser;
@@ -205,6 +206,7 @@ export function AdminDashboard({ user, initialAppointments }: AdminDashboardProp
   const [appointments, setAppointments] = useState(initialAppointments);
   const [filter, setFilter] = useState<AppointmentStatus | "ALL">("PENDING");
   const [activeTab, setActiveTab] = useState<"reservations" | "profil">("reservations");
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const isSuperAdmin = currentUser.droit === "SUPER_ADMIN";
 
   const handleUpdated = (updated: AdminAppointment) => {
@@ -213,10 +215,9 @@ export function AdminDashboard({ user, initialAppointments }: AdminDashboardProp
     );
   };
 
-  const filtered =
-    filter === "ALL"
-      ? appointments
-      : appointments.filter((a) => a.status === filter);
+  const filtered = appointments
+    .filter((a) => filter === "ALL" || a.status === filter)
+    .filter((a) => !selectedDate || new Date(a.date).toISOString().slice(0, 10) === selectedDate);
 
   const countByStatus = (s: AppointmentStatus | "ALL") =>
     s === "ALL" ? appointments.length : appointments.filter((a) => a.status === s).length;
@@ -263,56 +264,89 @@ export function AdminDashboard({ user, initialAppointments }: AdminDashboardProp
 
       {/* Tab : Réservations */}
       {activeTab === "reservations" && (
-        <>
-          {/* Filters */}
-          <div className="mt-6 flex flex-wrap gap-2">
-            {FILTERS.map((f) => {
-              const count = countByStatus(f.key);
-              const active = filter === f.key;
-              return (
+        <div className="mt-6 flex gap-6">
+          {/* Left : filters + list */}
+          <div className="min-w-0 flex-1">
+            {/* Filters */}
+            <div className="flex flex-wrap gap-2">
+              {FILTERS.map((f) => {
+                const count = countByStatus(f.key);
+                const active = filter === f.key;
+                return (
+                  <button
+                    key={f.key}
+                    type="button"
+                    onClick={() => setFilter(f.key)}
+                    className={`rounded-full border px-4 py-1.5 text-sm font-medium transition ${
+                      active
+                        ? "border-rose-primary bg-rose-soft/50 text-rose-primary"
+                        : "border-slate-200 text-slate-600 hover:border-slate-300"
+                    }`}
+                  >
+                    {f.label}
+                    {count > 0 && (
+                      <span
+                        className={`ml-1.5 rounded-full px-1.5 py-0.5 text-xs ${
+                          active ? "bg-rose-primary text-white" : "bg-slate-100 text-slate-500"
+                        }`}
+                      >
+                        {count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Active date filter badge */}
+            {selectedDate && (
+              <div className="mt-3 flex items-center gap-2">
+                <span className="text-xs text-slate-500">
+                  Filtre date :{" "}
+                  <span className="font-medium text-slate-700">
+                    {new Date(selectedDate + "T12:00:00").toLocaleDateString("fr-FR", {
+                      weekday: "long", day: "numeric", month: "long",
+                    })}
+                  </span>
+                </span>
                 <button
-                  key={f.key}
                   type="button"
-                  onClick={() => setFilter(f.key)}
-                  className={`rounded-full border px-4 py-1.5 text-sm font-medium transition ${
-                    active
-                      ? "border-rose-primary bg-rose-soft/50 text-rose-primary"
-                      : "border-slate-200 text-slate-600 hover:border-slate-300"
-                  }`}
+                  onClick={() => setSelectedDate(null)}
+                  className="text-xs text-rose-primary hover:underline"
                 >
-                  {f.label}
-                  {count > 0 && (
-                    <span
-                      className={`ml-1.5 rounded-full px-1.5 py-0.5 text-xs ${
-                        active ? "bg-rose-primary text-white" : "bg-slate-100 text-slate-500"
-                      }`}
-                    >
-                      {count}
-                    </span>
-                  )}
+                  Effacer
                 </button>
-              );
-            })}
+              </div>
+            )}
+
+            {/* List */}
+            <div className="mt-4 space-y-3">
+              {filtered.length === 0 ? (
+                <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center">
+                  <p className="text-sm text-slate-500">Aucun rendez-vous dans cette catégorie.</p>
+                </div>
+              ) : (
+                filtered.map((a) => (
+                  <AppointmentRow
+                    key={a.id}
+                    appointment={a}
+                    isSuperAdmin={isSuperAdmin}
+                    onUpdated={handleUpdated}
+                  />
+                ))
+              )}
+            </div>
           </div>
 
-          {/* List */}
-          <div className="mt-6 space-y-3">
-            {filtered.length === 0 ? (
-              <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center">
-                <p className="text-sm text-slate-500">Aucun rendez-vous dans cette catégorie.</p>
-              </div>
-            ) : (
-              filtered.map((a) => (
-                <AppointmentRow
-                  key={a.id}
-                  appointment={a}
-                  isSuperAdmin={isSuperAdmin}
-                  onUpdated={handleUpdated}
-                />
-              ))
-            )}
+          {/* Right : calendar (desktop only) */}
+          <div className="hidden w-72 shrink-0 lg:block">
+            <AdminCalendar
+              appointments={appointments}
+              selectedDate={selectedDate}
+              onSelectDate={setSelectedDate}
+            />
           </div>
-        </>
+        </div>
       )}
 
       {/* Tab : Profil */}
