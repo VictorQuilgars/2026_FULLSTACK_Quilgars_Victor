@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { AuthUser } from "@/types/auth";
 import type { AdminAppointment } from "@/types/admin";
 import type { AppointmentStatus } from "@/types/appointment";
+import { ProfileSection } from "@/components/espace-client/profile-section";
 
 type AdminDashboardProps = {
   user: AuthUser;
@@ -200,9 +201,11 @@ function AppointmentRow({
 }
 
 export function AdminDashboard({ user, initialAppointments }: AdminDashboardProps) {
+  const [currentUser, setCurrentUser] = useState(user);
   const [appointments, setAppointments] = useState(initialAppointments);
   const [filter, setFilter] = useState<AppointmentStatus | "ALL">("PENDING");
-  const isSuperAdmin = user.droit === "SUPER_ADMIN";
+  const [activeTab, setActiveTab] = useState<"reservations" | "profil">("reservations");
+  const isSuperAdmin = currentUser.droit === "SUPER_ADMIN";
 
   const handleUpdated = (updated: AdminAppointment) => {
     setAppointments((prev) =>
@@ -229,7 +232,7 @@ export function AdminDashboard({ user, initialAppointments }: AdminDashboardProp
           <p className="mt-1 text-sm text-slate-500">
             {isSuperAdmin
               ? "Tous les rendez-vous · gestion complète"
-              : `${user.prenom} ${user.nom} · ${user.role ?? "Technicien"}`}
+              : `${currentUser.prenom} ${currentUser.nom} · ${currentUser.role ?? "Technicien"}`}
           </p>
         </div>
         <a
@@ -240,54 +243,84 @@ export function AdminDashboard({ user, initialAppointments }: AdminDashboardProp
         </a>
       </div>
 
-      {/* Filters */}
-      <div className="mt-6 flex flex-wrap gap-2">
-        {FILTERS.map((f) => {
-          const count = countByStatus(f.key);
-          const active = filter === f.key;
-          return (
-            <button
-              key={f.key}
-              type="button"
-              onClick={() => setFilter(f.key)}
-              className={`rounded-full border px-4 py-1.5 text-sm font-medium transition ${
-                active
-                  ? "border-rose-primary bg-rose-soft/50 text-rose-primary"
-                  : "border-slate-200 text-slate-600 hover:border-slate-300"
-              }`}
-            >
-              {f.label}
-              {count > 0 && (
-                <span
-                  className={`ml-1.5 rounded-full px-1.5 py-0.5 text-xs ${
-                    active ? "bg-rose-primary text-white" : "bg-slate-100 text-slate-500"
-                  }`}
-                >
-                  {count}
-                </span>
-              )}
-            </button>
-          );
-        })}
+      {/* Tabs */}
+      <div className="mt-8 flex gap-1 rounded-xl bg-slate-100 p-1">
+        {(["reservations", "profil"] as const).map((tab) => (
+          <button
+            key={tab}
+            type="button"
+            onClick={() => setActiveTab(tab)}
+            className={`flex-1 rounded-lg py-2.5 text-sm font-semibold transition ${
+              activeTab === tab
+                ? "bg-white text-slate-900 shadow-sm"
+                : "text-slate-500 hover:text-slate-700"
+            }`}
+          >
+            {tab === "reservations" ? "Réservations" : "Profil"}
+          </button>
+        ))}
       </div>
 
-      {/* List */}
-      <div className="mt-6 space-y-3">
-        {filtered.length === 0 ? (
-          <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center">
-            <p className="text-sm text-slate-500">Aucun rendez-vous dans cette catégorie.</p>
+      {/* Tab : Réservations */}
+      {activeTab === "reservations" && (
+        <>
+          {/* Filters */}
+          <div className="mt-6 flex flex-wrap gap-2">
+            {FILTERS.map((f) => {
+              const count = countByStatus(f.key);
+              const active = filter === f.key;
+              return (
+                <button
+                  key={f.key}
+                  type="button"
+                  onClick={() => setFilter(f.key)}
+                  className={`rounded-full border px-4 py-1.5 text-sm font-medium transition ${
+                    active
+                      ? "border-rose-primary bg-rose-soft/50 text-rose-primary"
+                      : "border-slate-200 text-slate-600 hover:border-slate-300"
+                  }`}
+                >
+                  {f.label}
+                  {count > 0 && (
+                    <span
+                      className={`ml-1.5 rounded-full px-1.5 py-0.5 text-xs ${
+                        active ? "bg-rose-primary text-white" : "bg-slate-100 text-slate-500"
+                      }`}
+                    >
+                      {count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
-        ) : (
-          filtered.map((a) => (
-            <AppointmentRow
-              key={a.id}
-              appointment={a}
-              isSuperAdmin={isSuperAdmin}
-              onUpdated={handleUpdated}
-            />
-          ))
-        )}
-      </div>
+
+          {/* List */}
+          <div className="mt-6 space-y-3">
+            {filtered.length === 0 ? (
+              <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center">
+                <p className="text-sm text-slate-500">Aucun rendez-vous dans cette catégorie.</p>
+              </div>
+            ) : (
+              filtered.map((a) => (
+                <AppointmentRow
+                  key={a.id}
+                  appointment={a}
+                  isSuperAdmin={isSuperAdmin}
+                  onUpdated={handleUpdated}
+                />
+              ))
+            )}
+          </div>
+        </>
+      )}
+
+      {/* Tab : Profil */}
+      {activeTab === "profil" && (
+        <div className="mt-6">
+          <ProfileSection user={currentUser} onUserUpdated={setCurrentUser} />
+        </div>
+      )}
     </div>
   );
 }
