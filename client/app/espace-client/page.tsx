@@ -75,7 +75,7 @@ export default async function Page() {
     }
   }
 
-  if (user?.droit === "ADMIN" || user?.droit === "SUPER_ADMIN") {
+  if (user?.droit === "COLLABORATEUR" || user?.droit === "ADMIN") {
     redirect("/espace-admin");
   }
 

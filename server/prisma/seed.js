@@ -85,7 +85,7 @@ async function main() {
       tel: "0772103552",
       dateNaissance: new Date("1995-05-15"),
       sexe: "MASCULIN",
-      droit: "SUPER_ADMIN",
+      droit: "ADMIN",
       role: "Co-fondateur",
     },
     {
@@ -96,7 +96,7 @@ async function main() {
       tel: "0602243720",
       dateNaissance: new Date("1996-08-20"),
       sexe: "MASCULIN",
-      droit: "SUPER_ADMIN",
+      droit: "ADMIN",
       role: "Co-fondateur",
     },
     {
@@ -107,7 +107,7 @@ async function main() {
       tel: "0600000001",
       dateNaissance: new Date("1998-03-10"),
       sexe: "MASCULIN",
-      droit: "ADMIN",
+      droit: "COLLABORATEUR",
       role: "Expert Nettoyage",
     },
     {
@@ -118,7 +118,7 @@ async function main() {
       tel: "0600000002",
       dateNaissance: new Date("1997-11-25"),
       sexe: "MASCULIN",
-      droit: "ADMIN",
+      droit: "COLLABORATEUR",
       role: "Spécialiste Intérieur",
     },
   ];

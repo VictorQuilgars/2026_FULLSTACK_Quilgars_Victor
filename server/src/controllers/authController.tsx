@@ -1,7 +1,15 @@
 import type { Request, Response } from "express";
-import { Gender, Prisma } from "@prisma/client";
+import { AccessLevel, Gender, Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma";
 import { AppError } from "../utils/appError";
+
+const PREDEFINED_ROLES = [
+  "Co-fondateur",
+  "Technicien",
+  "Expert Nettoyage",
+  "Spécialiste Intérieur",
+  "Responsable Qualité",
+];
 
 type UpdateProfileBody = {
   email?: string;
@@ -10,6 +18,7 @@ type UpdateProfileBody = {
   tel?: string;
   dateNaissance?: string;
   sexe?: string;
+  role?: string;
 };
 
 export const register = async (_req: Request, _res: Response) => {
@@ -45,7 +54,7 @@ export const updateProfile = async (
     throw new AppError("Utilisateur non authentifié.", 401);
   }
 
-  const { email, nom, prenom, tel, dateNaissance, sexe } = req.body;
+  const { email, nom, prenom, tel, dateNaissance, sexe, role } = req.body;
   const data: {
     email?: string | null;
     nom?: string;
@@ -53,6 +62,7 @@ export const updateProfile = async (
     tel?: string;
     dateNaissance?: Date | null;
     sexe?: Gender | null;
+    role?: string | null;
   } = {};
 
   if (email !== undefined) {
@@ -103,6 +113,17 @@ export const updateProfile = async (
         throw new AppError("Valeur de sexe invalide.", 400);
       }
       data.sexe = sexe as Gender;
+    }
+  }
+
+  if (role !== undefined && req.authUser!.droit === AccessLevel.ADMIN) {
+    if (!role.trim()) {
+      data.role = null;
+    } else {
+      if (!PREDEFINED_ROLES.includes(role.trim())) {
+        throw new AppError(`Rôle invalide. Valeurs autorisées : ${PREDEFINED_ROLES.join(", ")}.`, 400);
+      }
+      data.role = role.trim();
     }
   }
 

@@ -85,7 +85,7 @@ export const createAppointment = async (
   const staffMembers = await prisma.user.findMany({
     where: {
       droit: {
-        in: [AccessLevel.ADMIN, AccessLevel.SUPER_ADMIN],
+        in: [AccessLevel.COLLABORATEUR, AccessLevel.ADMIN],
       },
     },
     include: {
@@ -232,7 +232,7 @@ export const getAvailableSlots = async (req: Request, res: Response) => {
 
   const staffMembers = await prisma.user.findMany({
     where: {
-      droit: { in: [AccessLevel.ADMIN, AccessLevel.SUPER_ADMIN] },
+      droit: { in: [AccessLevel.COLLABORATEUR, AccessLevel.ADMIN] },
     },
     include: {
       assignedTasks: {
@@ -484,7 +484,7 @@ export const updateAppointment = async (
 
   const staffMembers = await prisma.user.findMany({
     where: {
-      droit: { in: [AccessLevel.ADMIN, AccessLevel.SUPER_ADMIN] },
+      droit: { in: [AccessLevel.COLLABORATEUR, AccessLevel.ADMIN] },
     },
     include: {
       assignedTasks: {

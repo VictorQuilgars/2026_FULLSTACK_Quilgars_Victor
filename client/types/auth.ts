@@ -6,7 +6,7 @@ export type AuthUser = {
   tel: string;
   dateNaissance: string | null;
   sexe: "MASCULIN" | "FEMININ" | "AUTRE" | null;
-  droit: "USER" | "ADMIN" | "SUPER_ADMIN";
+  droit: "USER" | "COLLABORATEUR" | "ADMIN";
   role: string | null;
   createdAt: string;
   updatedAt: string;

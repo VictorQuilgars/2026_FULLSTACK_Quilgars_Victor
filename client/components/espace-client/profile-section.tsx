@@ -17,6 +17,14 @@ type ProfileResponse = {
 const formatDateForInput = (date: string | null) =>
   date ? new Date(date).toISOString().slice(0, 10) : "";
 
+const PREDEFINED_ROLES = [
+  "Co-fondateur",
+  "Technicien",
+  "Expert Nettoyage",
+  "Spécialiste Intérieur",
+  "Responsable Qualité",
+];
+
 export function ProfileSection({
   user,
   onUserUpdated,
@@ -25,6 +33,8 @@ export function ProfileSection({
   const [isPending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const isStaff = user.droit === "ADMIN" || user.droit === "COLLABORATEUR";
+  const canEditRole = user.droit === "ADMIN";
   const [form, setForm] = useState({
     prenom: user.prenom,
     nom: user.nom,
@@ -32,6 +42,7 @@ export function ProfileSection({
     tel: user.tel,
     dateNaissance: formatDateForInput(user.dateNaissance),
     sexe: user.sexe ?? "",
+    role: user.role ?? "",
   });
 
   const handleChange = (
@@ -71,6 +82,7 @@ export function ProfileSection({
           tel: payload.user.tel,
           dateNaissance: formatDateForInput(payload.user.dateNaissance),
           sexe: payload.user.sexe ?? "",
+          role: payload.user.role ?? "",
         });
         setMessage(payload.message ?? "Profil mis à jour avec succès.");
         router.refresh();
@@ -149,6 +161,31 @@ export function ProfileSection({
             </select>
           </label>
         </div>
+
+        {isStaff && (
+          <label className="block">
+            <span className="block text-xs font-medium text-slate-500">
+              Rôle dans l&apos;équipe
+            </span>
+            {canEditRole ? (
+              <select
+                name="role"
+                value={form.role}
+                onChange={handleChange}
+                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-rose-primary"
+              >
+                <option value="">Non renseigné</option>
+                {PREDEFINED_ROLES.map((r) => (
+                  <option key={r} value={r}>{r}</option>
+                ))}
+              </select>
+            ) : (
+              <p className="mt-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500">
+                {form.role || "Non renseigné"}
+              </p>
+            )}
+          </label>
+        )}
 
         {error && (
           <div className="rounded-xl border border-rose-primary/30 bg-rose-primary/10 px-4 py-3 text-sm text-rose-strong">

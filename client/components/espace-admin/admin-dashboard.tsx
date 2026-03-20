@@ -207,7 +207,7 @@ export function AdminDashboard({ user, initialAppointments }: AdminDashboardProp
   const [filter, setFilter] = useState<AppointmentStatus | "ALL">("PENDING");
   const [activeTab, setActiveTab] = useState<"reservations" | "profil">("reservations");
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const isSuperAdmin = currentUser.droit === "SUPER_ADMIN";
+  const isSuperAdmin = currentUser.droit === "ADMIN";
 
   const handleUpdated = (updated: AdminAppointment) => {
     setAppointments((prev) =>

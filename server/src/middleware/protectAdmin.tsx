@@ -9,7 +9,7 @@ export const protectAdmin = [
     const user = _req.authUser;
     if (
       !user ||
-      (user.droit !== AccessLevel.ADMIN && user.droit !== AccessLevel.SUPER_ADMIN)
+      (user.droit !== AccessLevel.COLLABORATEUR && user.droit !== AccessLevel.ADMIN)
     ) {
       return next(new AppError("Accès réservé au personnel.", 403));
     }

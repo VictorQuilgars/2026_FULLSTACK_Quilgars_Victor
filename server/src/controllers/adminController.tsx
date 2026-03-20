@@ -33,7 +33,7 @@ const APPOINTMENT_INCLUDE = {
 export const getAdminAppointments = async (req: Request, res: Response) => {
   if (!req.authUser?.id) throw new AppError("Non authentifié.", 401);
 
-  const isSuperAdmin = req.authUser.droit === AccessLevel.SUPER_ADMIN;
+  const isSuperAdmin = req.authUser.droit === AccessLevel.ADMIN;
 
   const appointments = await prisma.appointment.findMany({
     where: isSuperAdmin ? {} : { staffId: req.authUser.id },
@@ -76,7 +76,7 @@ export const updateAppointmentStatus = async (
 
   const newStatus = status as AppointmentStatus;
   const appointmentId = Number(req.params.id);
-  const isSuperAdmin = req.authUser.droit === AccessLevel.SUPER_ADMIN;
+  const isSuperAdmin = req.authUser.droit === AccessLevel.ADMIN;
 
   const appointment = await prisma.appointment.findUnique({
     where: { id: appointmentId },
