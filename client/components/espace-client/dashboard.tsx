@@ -52,7 +52,7 @@ export function Dashboard({
           </Link>
           <a
             href={logoutUrl}
-            className="rounded-full border border-slate-300 px-4 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-100"
+            className="rounded-full bg-red-500 px-4 py-2 text-xs font-semibold text-white transition hover:bg-red-600"
           >
             Se déconnecter
           </a>

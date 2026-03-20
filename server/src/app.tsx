@@ -1,6 +1,7 @@
 import "dotenv/config";
 import cors from "cors";
 import express from "express";
+import adminRoutes from "./routes/adminRoutes";
 import appointmentRoutes from "./routes/appointmentRoutes";
 import authRoutes from "./routes/authRoutes";
 import serviceRoutes from "./routes/serviceRoutes";
@@ -22,6 +23,7 @@ app.get("/api/health", (_req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/services", serviceRoutes);
+app.use("/api/admin", adminRoutes);
 app.use("/api", appointmentRoutes);
 
 app.use(notFound);

@@ -162,10 +162,22 @@ export const protect = async (
     }
 
     if (Object.keys(updates).length > 0) {
-      user = await prisma.user.update({
-        where: { id: user.id },
-        data: updates,
-      });
+      try {
+        user = await prisma.user.update({
+          where: { id: user.id },
+          data: updates,
+        });
+      } catch (updateError) {
+        if (
+          updateError instanceof Prisma.PrismaClientKnownRequestError &&
+          updateError.code === "P2002"
+        ) {
+          // Concurrent request already applied the update — refetch
+          user = await prisma.user.findUnique({ where: { id: user!.id } });
+        } else {
+          throw updateError;
+        }
+      }
     }
   }
 

@@ -75,6 +75,10 @@ export default async function Page() {
     }
   }
 
+  if (user?.droit === "ADMIN" || user?.droit === "SUPER_ADMIN") {
+    redirect("/espace-admin");
+  }
+
   return (
     <div className="flex min-h-screen flex-col bg-white">
       <SiteHeader />
