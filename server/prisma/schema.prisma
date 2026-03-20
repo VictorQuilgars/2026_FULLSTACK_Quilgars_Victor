@@ -16,6 +16,11 @@ enum AccessLevel {
   ADMIN         // Fondateur (accès total)
 }
 
+enum UserState {
+  ACTIVE
+  SUSPENDED
+}
+
 enum Gender {
   MASCULIN
   FEMININ
@@ -46,6 +51,7 @@ model User {
   // Droits et Fonctions
   droit           AccessLevel   @default(USER)
   role            String?       // "Co-fondateur", "Expert Nettoyage", etc.
+  state           UserState     @default(ACTIVE)
   
   // Relations
   // Un utilisateur peut prendre plusieurs rendez-vous (en tant que client)

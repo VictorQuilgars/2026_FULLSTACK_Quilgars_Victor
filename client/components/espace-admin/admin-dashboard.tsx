@@ -6,6 +6,7 @@ import type { AdminAppointment } from "@/types/admin";
 import type { AppointmentStatus } from "@/types/appointment";
 import { ProfileSection } from "@/components/espace-client/profile-section";
 import { AdminCalendar } from "@/components/espace-admin/admin-calendar";
+import { UsersTab } from "@/components/espace-admin/users-tab";
 
 type AdminDashboardProps = {
   user: AuthUser;
@@ -205,7 +206,7 @@ export function AdminDashboard({ user, initialAppointments }: AdminDashboardProp
   const [currentUser, setCurrentUser] = useState(user);
   const [appointments, setAppointments] = useState(initialAppointments);
   const [filter, setFilter] = useState<AppointmentStatus | "ALL">("PENDING");
-  const [activeTab, setActiveTab] = useState<"reservations" | "profil">("reservations");
+  const [activeTab, setActiveTab] = useState<"reservations" | "utilisateurs" | "profil">("reservations");
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const isSuperAdmin = currentUser.droit === "ADMIN";
 
@@ -246,18 +247,22 @@ export function AdminDashboard({ user, initialAppointments }: AdminDashboardProp
 
       {/* Tabs */}
       <div className="mt-8 flex gap-1 rounded-xl bg-slate-100 p-1">
-        {(["reservations", "profil"] as const).map((tab) => (
+        {([
+          { key: "reservations", label: "Réservations" },
+          ...(isSuperAdmin ? [{ key: "utilisateurs", label: "Utilisateurs" }] : []),
+          { key: "profil", label: "Profil" },
+        ] as { key: "reservations" | "utilisateurs" | "profil"; label: string }[]).map((tab) => (
           <button
-            key={tab}
+            key={tab.key}
             type="button"
-            onClick={() => setActiveTab(tab)}
+            onClick={() => setActiveTab(tab.key)}
             className={`flex-1 rounded-lg py-2.5 text-sm font-semibold transition ${
-              activeTab === tab
+              activeTab === tab.key
                 ? "bg-white text-slate-900 shadow-sm"
                 : "text-slate-500 hover:text-slate-700"
             }`}
           >
-            {tab === "reservations" ? "Réservations" : "Profil"}
+            {tab.label}
           </button>
         ))}
       </div>
@@ -346,6 +351,13 @@ export function AdminDashboard({ user, initialAppointments }: AdminDashboardProp
               onSelectDate={setSelectedDate}
             />
           </div>
+        </div>
+      )}
+
+      {/* Tab : Utilisateurs */}
+      {activeTab === "utilisateurs" && isSuperAdmin && (
+        <div className="mt-6">
+          <UsersTab currentUser={currentUser} />
         </div>
       )}
 

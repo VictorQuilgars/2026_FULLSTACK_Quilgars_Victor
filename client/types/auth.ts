@@ -8,6 +8,7 @@ export type AuthUser = {
   sexe: "MASCULIN" | "FEMININ" | "AUTRE" | null;
   droit: "USER" | "COLLABORATEUR" | "ADMIN";
   role: string | null;
+  state: "ACTIVE" | "SUSPENDED";
   createdAt: string;
   updatedAt: string;
 };

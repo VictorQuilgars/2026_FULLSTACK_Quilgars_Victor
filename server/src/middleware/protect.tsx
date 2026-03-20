@@ -181,6 +181,10 @@ export const protect = async (
     }
   }
 
+  if (user?.state === "SUSPENDED") {
+    return next(new AppError("Votre compte a été suspendu. Contactez l'administration.", 403));
+  }
+
   req.authUser = user;
   next();
 };
