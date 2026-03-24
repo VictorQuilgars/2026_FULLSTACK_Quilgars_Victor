@@ -51,7 +51,7 @@ export const getAdminAppointments = async (req: Request, res: Response) => {
 //   CONFIRMED → DONE      (terminer)
 //   CONFIRMED → CANCELLED (annuler)
 
-type UpdateStatusBody = { status?: string };
+type UpdateStatusBody = { status?: string; staffId?: string };
 
 export const updateAppointmentStatus = async (
   req: Request<{ id: string }, unknown, UpdateStatusBody>,
@@ -59,7 +59,7 @@ export const updateAppointmentStatus = async (
 ) => {
   if (!req.authUser?.id) throw new AppError("Non authentifié.", 401);
 
-  const { status } = req.body;
+  const { status, staffId } = req.body;
 
   const ALLOWED: AppointmentStatus[] = [
     AppointmentStatus.CONFIRMED,
@@ -103,9 +103,20 @@ export const updateAppointmentStatus = async (
     );
   }
 
+  // Vérifier que le staffId existe et est bien un membre du personnel
+  if (staffId) {
+    const staffMember = await prisma.user.findUnique({ where: { id: staffId } });
+    if (!staffMember || (staffMember.droit !== AccessLevel.ADMIN && staffMember.droit !== AccessLevel.COLLABORATEUR)) {
+      throw new AppError("Technicien invalide.", 400);
+    }
+  }
+
   const updated = await prisma.appointment.update({
     where: { id: appointmentId },
-    data: { status: newStatus },
+    data: {
+      status: newStatus,
+      ...(staffId && newStatus === AppointmentStatus.CONFIRMED ? { staffId } : {}),
+    },
     include: APPOINTMENT_INCLUDE,
   });
 

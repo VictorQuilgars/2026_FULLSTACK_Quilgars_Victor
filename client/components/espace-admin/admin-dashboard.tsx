@@ -65,6 +65,8 @@ function ActionButton({
   );
 }
 
+type StaffMember = { id: string; prenom: string; nom: string; role: string | null; droit: string };
+
 function AppointmentRow({
   appointment,
   isSuperAdmin,
@@ -76,15 +78,35 @@ function AppointmentRow({
 }) {
   const [loadingStatus, setLoadingStatus] = useState<AppointmentStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [confirmingMode, setConfirmingMode] = useState(false);
+  const [staffList, setStaffList] = useState<StaffMember[]>([]);
+  const [selectedStaffId, setSelectedStaffId] = useState<string>("");
+  const [loadingStaff, setLoadingStaff] = useState(false);
 
-  const changeStatus = async (status: AppointmentStatus) => {
+  const openConfirmPicker = async () => {
+    setConfirmingMode(true);
+    if (staffList.length === 0) {
+      setLoadingStaff(true);
+      try {
+        const res = await fetch("/api/admin/staff");
+        const data = await res.json();
+        const list = Array.isArray(data) ? data : [];
+        setStaffList(list);
+        if (list.length > 0) setSelectedStaffId(list[0].id);
+      } finally {
+        setLoadingStaff(false);
+      }
+    }
+  };
+
+  const changeStatus = async (status: AppointmentStatus, staffId?: string) => {
     setLoadingStatus(status);
     setError(null);
     try {
       const res = await fetch(`/api/admin/appointments/${appointment.id}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status, ...(staffId ? { staffId } : {}) }),
       });
       if (!res.ok) {
         const data = await res.json();
@@ -92,6 +114,7 @@ function AppointmentRow({
         return;
       }
       const updated: AdminAppointment = await res.json();
+      setConfirmingMode(false);
       onUpdated(updated);
     } catch {
       setError("Une erreur est survenue.");
@@ -162,14 +185,14 @@ function AppointmentRow({
 
       {/* Actions */}
       {(appointment.status === "PENDING" || appointment.status === "CONFIRMED") && (
-        <div className="flex flex-wrap gap-2 pt-1">
-          {appointment.status === "PENDING" && (
-            <>
+        <div className="pt-1 space-y-2">
+          {appointment.status === "PENDING" && !confirmingMode && (
+            <div className="flex flex-wrap gap-2">
               <ActionButton
                 label="Confirmer"
                 variant="green"
-                loading={loadingStatus === "CONFIRMED"}
-                onClick={() => changeStatus("CONFIRMED")}
+                loading={false}
+                onClick={isSuperAdmin ? openConfirmPicker : () => changeStatus("CONFIRMED")}
               />
               <ActionButton
                 label="Refuser"
@@ -177,10 +200,51 @@ function AppointmentRow({
                 loading={loadingStatus === "CANCELLED"}
                 onClick={() => changeStatus("CANCELLED")}
               />
-            </>
+            </div>
           )}
+
+          {/* Sélecteur de technicien (ADMIN uniquement) */}
+          {appointment.status === "PENDING" && confirmingMode && (
+            <div className="rounded-xl border border-green-200 bg-green-50 p-3 space-y-2">
+              <p className="text-xs font-semibold text-green-800">Assigner un technicien</p>
+              {loadingStaff ? (
+                <p className="text-xs text-slate-400">Chargement…</p>
+              ) : (
+                <select
+                  value={selectedStaffId}
+                  onChange={(e) => setSelectedStaffId(e.target.value)}
+                  className="w-full rounded-lg border border-green-200 bg-white px-3 py-1.5 text-sm text-slate-800 outline-none focus:border-green-400"
+                >
+                  <option value="">— Sans technicien —</option>
+                  {staffList.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.prenom} {s.nom}{s.role ? ` · ${s.role}` : ""}
+                    </option>
+                  ))}
+                </select>
+              )}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => changeStatus("CONFIRMED", selectedStaffId || undefined)}
+                  disabled={loadingStatus === "CONFIRMED" || loadingStaff}
+                  className="rounded-full bg-green-600 px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-green-700 disabled:opacity-50"
+                >
+                  {loadingStatus === "CONFIRMED" ? "…" : "Confirmer"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmingMode(false)}
+                  className="rounded-full border border-slate-200 px-4 py-1.5 text-xs font-medium text-slate-500 hover:bg-slate-50 transition"
+                >
+                  Annuler
+                </button>
+              </div>
+            </div>
+          )}
+
           {appointment.status === "CONFIRMED" && (
-            <>
+            <div className="flex flex-wrap gap-2">
               <ActionButton
                 label="Marquer comme terminé"
                 variant="blue"
@@ -193,7 +257,7 @@ function AppointmentRow({
                 loading={loadingStatus === "CANCELLED"}
                 onClick={() => changeStatus("CANCELLED")}
               />
-            </>
+            </div>
           )}
         </div>
       )}

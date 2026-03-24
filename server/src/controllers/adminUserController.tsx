@@ -3,6 +3,16 @@ import { AccessLevel, UserState } from "@prisma/client";
 import { prisma } from "../lib/prisma";
 import { AppError } from "../utils/appError";
 
+// ─── GET /admin/staff ─────────────────────────────────────────────────────────
+export const getStaff = async (req: Request, res: Response) => {
+  const staff = await prisma.user.findMany({
+    where: { droit: { in: [AccessLevel.ADMIN, AccessLevel.COLLABORATEUR] } },
+    select: { id: true, nom: true, prenom: true, role: true, droit: true },
+    orderBy: [{ droit: "asc" }, { prenom: "asc" }],
+  });
+  res.status(200).json(staff);
+};
+
 const USER_SELECT = {
   id: true,
   nom: true,
