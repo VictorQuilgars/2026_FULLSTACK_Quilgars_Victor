@@ -299,6 +299,104 @@ async function main() {
     console.log(`  ↩  Rendez-vous déjà présents (${existing}), ignorés.`);
   }
 
+  // 5. 50 rendez-vous supplémentaires (seulement si < 70 en base)
+  const totalExisting = await prisma.appointment.count();
+  if (totalExisting < 70) {
+    console.log("⏳ Création de 50 rendez-vous supplémentaires...");
+
+    const allUsers = await prisma.user.findMany({ select: { id: true, droit: true } });
+    const staffUsers = allUsers.filter(u => u.droit === "ADMIN" || u.droit === "COLLABORATEUR");
+    const clientUsers = allUsers.filter(u => u.droit === "USER");
+    const allServices = await prisma.service.findMany();
+
+    const gammesByService = {
+      "Intérieur voiture": [
+        { gamme: "Citadine (Clio, 208...)", prix: 99 },
+        { gamme: "Berline/ Break (A5, 508..)", prix: 109 },
+        { gamme: "SUV (2008, Tiguan, Q5...)", prix: 119 },
+        { gamme: "Monospace 7 places/ Van", prix: 139 },
+      ],
+      "Canapé classique":  [{ gamme: "Prix unique", prix: 99 }],
+      "Canapé d'angles":   [{ gamme: "Prix unique", prix: 109 }],
+      "Tapis":             [{ gamme: "Prix unique", prix: 99 }],
+      "Fauteuil":          [{ gamme: "Prix unique", prix: 60 }],
+    };
+
+    const slots = ["08:00", "09:00", "10:00", "10:30", "11:00", "13:00", "14:00", "15:00", "16:00", "17:00"];
+    const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+    const dOffset = (offset) => {
+      const date = new Date();
+      date.setDate(date.getDate() + offset);
+      date.setHours(0, 0, 0, 0);
+      return date;
+    };
+
+    const offsets = [
+      -90, -85, -80, -75, -70, -65, -60, -58, -55, -52,
+      -48, -45, -42, -38, -35, -32, -28, -26, -23, -21,
+      -19, -16, -14, -11, -9, -6, -4, -2, 0,
+       1,   2,   3,   4,   5,   6,   7,   8,   9,  10,
+      12,  14,  16,  18,  20,  22,  25,  28,  30,  35,
+    ];
+
+    for (const offset of offsets) {
+      const svc = pick(allServices);
+      const gammes = gammesByService[svc.nom] ?? [{ gamme: "Prix unique", prix: 99 }];
+      const { gamme, prix } = pick(gammes);
+      const client = pick(clientUsers);
+      const status = offset < -5
+        ? pick(["DONE", "DONE", "DONE", "CANCELLED"])
+        : offset < 0
+        ? pick(["DONE", "CONFIRMED"])
+        : offset === 0
+        ? pick(["CONFIRMED", "PENDING"])
+        : pick(["PENDING", "PENDING", "CONFIRMED"]);
+
+      const assignedStaff = (status === "CONFIRMED" || status === "DONE") ? pick(staffUsers) : null;
+
+      await prisma.appointment.create({
+        data: {
+          date: dOffset(offset),
+          slot: pick(slots),
+          status,
+          clientId: client.id,
+          staffId: assignedStaff?.id ?? null,
+          serviceId: svc.id,
+          gamme,
+          prix,
+        },
+      });
+    }
+
+    // Avis sur les DONE sans avis
+    const doneWithoutReview = await prisma.appointment.findMany({
+      where: { status: "DONE", review: null },
+      take: 20,
+    });
+    const extraComments = [
+      "Excellent travail, je suis très satisfait !",
+      "Canapé comme neuf, je recommande.",
+      "Équipe ponctuelle et professionnelle.",
+      "Voiture impeccable, travail soigné.",
+      "Super prestation, rapport qualité-prix imbattable.",
+      "Toutes les taches ont disparu, parfait.",
+      "Je ferai à nouveau appel à Roz sans hésiter.",
+      "Travail rapide et soigné !",
+      null, null, null,
+    ];
+    for (const appt of doneWithoutReview) {
+      const rating = Math.random() < 0.7 ? 5 : Math.random() < 0.5 ? 4 : 3;
+      await prisma.review.create({
+        data: { appointmentId: appt.id, rating, comment: pick(extraComments) },
+      });
+    }
+
+    const newTotal = await prisma.appointment.count();
+    console.log(`  ✓  50 rendez-vous ajoutés. Total en base : ${newTotal}.`);
+  } else {
+    console.log(`  ↩  Rendez-vous supplémentaires déjà présents (${totalExisting}), ignorés.`);
+  }
+
   console.log("");
   console.log("✅ Base de données initialisée avec succès !");
   console.log(`🔑 Mot de passe des comptes seed : ${SEED_PASSWORD}`);

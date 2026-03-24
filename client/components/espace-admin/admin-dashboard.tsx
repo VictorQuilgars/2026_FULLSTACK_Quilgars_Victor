@@ -7,6 +7,7 @@ import type { AppointmentStatus } from "@/types/appointment";
 import { ProfileSection } from "@/components/espace-client/profile-section";
 import { AdminCalendar } from "@/components/espace-admin/admin-calendar";
 import { UsersTab } from "@/components/espace-admin/users-tab";
+import { StatsTab } from "@/components/espace-admin/stats-tab";
 
 type AdminDashboardProps = {
   user: AuthUser;
@@ -206,7 +207,7 @@ export function AdminDashboard({ user, initialAppointments }: AdminDashboardProp
   const [currentUser, setCurrentUser] = useState(user);
   const [appointments, setAppointments] = useState(initialAppointments);
   const [filter, setFilter] = useState<AppointmentStatus | "ALL">("PENDING");
-  const [activeTab, setActiveTab] = useState<"reservations" | "utilisateurs" | "profil">("reservations");
+  const [activeTab, setActiveTab] = useState<"reservations" | "statistiques" | "utilisateurs" | "profil">("reservations");
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const isSuperAdmin = currentUser.droit === "ADMIN";
 
@@ -249,9 +250,12 @@ export function AdminDashboard({ user, initialAppointments }: AdminDashboardProp
       <div className="mt-8 flex gap-1 rounded-xl bg-slate-100 p-1">
         {([
           { key: "reservations", label: "Réservations" },
-          ...(isSuperAdmin ? [{ key: "utilisateurs", label: "Utilisateurs" }] : []),
+          ...(isSuperAdmin ? [
+            { key: "statistiques", label: "Statistiques" },
+            { key: "utilisateurs", label: "Utilisateurs" },
+          ] : []),
           { key: "profil", label: "Profil" },
-        ] as { key: "reservations" | "utilisateurs" | "profil"; label: string }[]).map((tab) => (
+        ] as { key: "reservations" | "statistiques" | "utilisateurs" | "profil"; label: string }[]).map((tab) => (
           <button
             key={tab.key}
             type="button"
@@ -351,6 +355,13 @@ export function AdminDashboard({ user, initialAppointments }: AdminDashboardProp
               onSelectDate={setSelectedDate}
             />
           </div>
+        </div>
+      )}
+
+      {/* Tab : Statistiques */}
+      {activeTab === "statistiques" && isSuperAdmin && (
+        <div className="mt-6">
+          <StatsTab />
         </div>
       )}
 
