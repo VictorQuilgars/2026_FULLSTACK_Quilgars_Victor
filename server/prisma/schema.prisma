@@ -107,6 +107,16 @@ model Appointment {
   updatedAt DateTime          @updatedAt
 }
 
+model BlockedSlot {
+  id        Int      @id @default(autoincrement())
+  date      DateTime
+  slot      String?  // null = journée entière fermée ; "09:00" = créneau spécifique
+  reason    String?
+  createdAt DateTime @default(now())
+
+  @@unique([date, slot])
+}
+
 model Review {
   id            Int         @id @default(autoincrement())
   rating        Int         // 1 à 5

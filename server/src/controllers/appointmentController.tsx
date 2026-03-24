@@ -209,6 +209,21 @@ export const getAvailableSlots = async (req: Request, res: Response) => {
 
   const appointmentDate = getAppointmentDate(date as string);
 
+  // Vérifier si la journée est fermée
+  const dayBlock = await prisma.blockedSlot.findFirst({
+    where: { date: appointmentDate, slot: null },
+  });
+  if (dayBlock) {
+    return res.status(200).json({ date, serviceId: Number(serviceId), slots: [] });
+  }
+
+  // Créneaux bloqués pour ce jour
+  const blockedSlotRecords = await prisma.blockedSlot.findMany({
+    where: { date: appointmentDate, slot: { not: null } },
+    select: { slot: true },
+  });
+  const blockedSlotSet = new Set(blockedSlotRecords.map((b) => b.slot));
+
   const service = await prisma.service.findUnique({
     where: { id: Number(serviceId) },
   });
@@ -276,7 +291,7 @@ export const getAvailableSlots = async (req: Request, res: Response) => {
       }),
     );
 
-    if (hasAvailableStaff) {
+    if (hasAvailableStaff && !blockedSlotSet.has(slot)) {
       availableSlots.push(slot);
     }
   }
