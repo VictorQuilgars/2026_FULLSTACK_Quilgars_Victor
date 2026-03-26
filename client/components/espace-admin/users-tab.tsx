@@ -57,7 +57,7 @@ function UserAppointmentsModal({
   useEffect(() => {
     fetch(`/api/admin/users/${user.id}/appointments`)
       .then((r) => r.json())
-      .then((data) => setAppointments(data))
+      .then((data) => setAppointments(Array.isArray(data) ? data : []))
       .finally(() => setLoading(false));
   }, [user.id]);
 
