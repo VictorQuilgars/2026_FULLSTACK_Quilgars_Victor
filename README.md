@@ -4,6 +4,13 @@ Application web de prise de rendez-vous pour Roz Nettoyage (nettoyage de véhicu
 
 ## Démarrage depuis un clone
 
+### 0. Cloner le dépôt
+
+```bash
+git clone https://github.com/VictorQuilgars/2026_FULLSTACK_Quilgars_Victor.git
+cd 2026_FULLSTACK_Quilgars_Victor
+```
+
 ### 1. Créer les fichiers d'environnement
 
 ```bash
