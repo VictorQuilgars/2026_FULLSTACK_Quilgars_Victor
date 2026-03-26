@@ -172,8 +172,13 @@ export const protect = async (
           updateError instanceof Prisma.PrismaClientKnownRequestError &&
           updateError.code === "P2002"
         ) {
-          // Concurrent request already applied the update — refetch
-          user = await prisma.user.findUnique({ where: { id: user!.id } });
+          // The email is already owned by another account (e.g. seed account vs OAuth account).
+          // Fall back to that account so the user gets the correct droit/role.
+          user = tokenEmail
+            ? ((await prisma.user.findFirst({
+                where: { email: { equals: tokenEmail, mode: "insensitive" } },
+              })) ?? (await prisma.user.findUnique({ where: { id: user!.id } })))
+            : await prisma.user.findUnique({ where: { id: user!.id } });
         } else {
           throw updateError;
         }
