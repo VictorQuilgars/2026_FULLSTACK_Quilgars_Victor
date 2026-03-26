@@ -53,3 +53,49 @@ docker logs roz-client -f
 # Lancer le seed manuellement
 docker exec roz-server node prisma/seed.js
 ```
+
+## Structure du projet
+
+```
+31-car-wash-app/
+├── docker-compose.yml
+├── server/                        # API REST — Express 5 + Prisma + PostgreSQL
+│   ├── prisma/
+│   │   ├── schema.prisma          # Modèles : User, Service, Appointment, Review, BlockedSlot
+│   │   └── seed.js                # Données initiales (services, staff Auth0 + DB, RDV)
+│   └── src/
+│       ├── app.tsx                # Configuration Express (middlewares, routes)
+│       ├── server.tsx             # Point d'entrée, connexion DB
+│       ├── controllers/           # Logique métier par domaine
+│       ├── routes/                # Déclaration des routes Express
+│       ├── middleware/
+│       │   ├── protect.tsx        # Vérification JWT Auth0 + auto-provision utilisateur
+│       │   └── errorHandler.tsx
+│       ├── lib/                   # Clients Prisma, Auth0, JWT
+│       └── utils/                 # Helpers (dates, erreurs)
+└── client/                        # Next.js 16 App Router
+    ├── app/
+    │   ├── (marketing)/           # Site vitrine public
+    │   ├── espace-client/         # Espace réservé aux clients connectés
+    │   ├── espace-admin/          # Espace réservé aux collaborateurs et admins
+    │   └── api/                   # Routes BFF — proxies vers l'API Express
+    ├── components/
+    │   ├── marketing/             # Composants du site vitrine
+    │   ├── espace-client/         # Dashboard client, profil
+    │   └── espace-admin/          # Dashboard admin, calendrier, stats, users
+    ├── lib/                       # Helpers Auth0, fetch, config
+    ├── types/                     # Types TypeScript partagés
+    └── constants/                 # Contenu statique (textes marketing)
+```
+
+### Authentification
+
+Auth0 Universal Login (Google OAuth + email/password). À la première connexion, l'utilisateur est automatiquement créé en base via le middleware `protect`. Les routes `client/app/api/*` sont des proxies BFF qui transmettent le token Auth0 à l'API Express — le client ne contacte jamais l'API directement.
+
+### Rôles
+
+| Valeur | Accès |
+|--------|-------|
+| `USER` | Espace client |
+| `COLLABORATEUR` | Espace admin — ses RDV assignés uniquement |
+| `ADMIN` | Espace admin — accès total |
