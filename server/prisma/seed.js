@@ -38,15 +38,13 @@ async function getAuth0ManagementToken() {
   return access_token;
 }
 
-async function createAuth0User(token, email, password, name) {
+// Returns the Auth0 user_id (creates or retrieves the existing user).
+async function getOrCreateAuth0UserId(token, email, password, name) {
   const domain = process.env.AUTH0_DOMAIN;
 
-  const res = await fetch(`https://${domain}/api/v2/users`, {
+  const createRes = await fetch(`https://${domain}/api/v2/users`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
     body: JSON.stringify({
       email,
       password,
@@ -56,17 +54,29 @@ async function createAuth0User(token, email, password, name) {
     }),
   });
 
-  if (res.status === 409) {
-    console.log(`  ↩  ${email} existe déjà dans Auth0, ignoré.`);
-    return;
+  if (createRes.ok) {
+    const user = await createRes.json();
+    console.log(`  ✓  ${email} créé dans Auth0. (${user.user_id})`);
+    return user.user_id;
   }
 
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(`Auth0 create user error (${email}): ${err.message}`);
+  if (createRes.status === 409) {
+    // User already exists — retrieve their ID by email search
+    const searchRes = await fetch(
+      `https://${domain}/api/v2/users?q=${encodeURIComponent(`email:"${email}"`)}&search_engine=v3`,
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+    if (searchRes.ok) {
+      const users = await searchRes.json();
+      if (users.length > 0) {
+        console.log(`  ↩  ${email} existe déjà dans Auth0. (${users[0].user_id})`);
+        return users[0].user_id;
+      }
+    }
   }
 
-  console.log(`  ✓  ${email} créé dans Auth0.`);
+  const err = await createRes.json().catch(() => ({}));
+  throw new Error(`Auth0 create user error (${email}): ${err.message ?? createRes.status}`);
 }
 
 // ─── Seed ────────────────────────────────────────────────────────────────────
@@ -123,23 +133,36 @@ async function main() {
     },
   ];
 
-  // 1a. Création dans Auth0
+  // 1a. Création dans Auth0 + récupération des IDs
   console.log("⏳ Création des comptes Auth0...");
   const mgmtToken = await getAuth0ManagementToken();
+  const auth0Ids = {};
   if (mgmtToken) {
     for (const u of staff) {
-      await createAuth0User(mgmtToken, u.email, SEED_PASSWORD, `${u.prenom} ${u.nom}`);
+      const auth0Id = await getOrCreateAuth0UserId(mgmtToken, u.email, SEED_PASSWORD, `${u.prenom} ${u.nom}`);
+      if (auth0Id) auth0Ids[u.email] = auth0Id;
     }
   }
 
-  // 1b. Création dans PostgreSQL
+  // 1b. Création dans PostgreSQL (avec l'Auth0 ID comme clé primaire)
   console.log("⏳ Création des utilisateurs en base...");
   for (const u of staff) {
-    await prisma.user.upsert({
-      where: { email: u.email },
-      update: {},
-      create: u,
-    });
+    const auth0Id = auth0Ids[u.email];
+    if (auth0Id) {
+      // Upsert par Auth0 ID : garantit que findUnique(id) fonctionne dès la première connexion
+      await prisma.user.upsert({
+        where: { id: auth0Id },
+        update: { droit: u.droit, role: u.role, email: u.email, nom: u.nom, prenom: u.prenom },
+        create: { ...u, id: auth0Id },
+      });
+    } else {
+      // Pas de token M2M — upsert par email sans ID forcé
+      await prisma.user.upsert({
+        where: { email: u.email },
+        update: {},
+        create: u,
+      });
+    }
   }
 
   // 2. Création des Services avec les prix JSON
